@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>便签</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #e8e4df;
+      color: #3a3a3a;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 48px;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(200,190,170,0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(180,170,150,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(220,210,195,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .sticky-note {
+      width: 100%;
+      background: #fef9e7;
+      border-radius: 2px;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.08),
+        0 4px 8px rgba(0,0,0,0.06),
+        0 8px 16px rgba(0,0,0,0.04),
+        2px 2px 0 rgba(0,0,0,0.02);
+      position: relative;
+      transition: box-shadow 0.3s ease;
+    }
+    .sticky-note:hover {
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.1),
+        0 8px 16px rgba(0,0,0,0.08),
+        0 16px 32px rgba(0,0,0,0.06),
+        3px 3px 0 rgba(0,0,0,0.03);
+    }
+    .tape {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%) rotate(-2deg);
+      width: 80px;
+      height: 28px;
+      background: rgba(255,255,255,0.45);
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      backdrop-filter: blur(2px);
+      z-index: 2;
+    }
+    .tape::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 3px,
+        rgba(255,255,255,0.3) 3px,
+        rgba(255,255,255,0.3) 6px
+      );
+    }
+    .paper-texture {
+      position: absolute;
+      inset: 0;
+      border-radius: 2px;
+      opacity: 0.4;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 23px,
+        rgba(0,0,0,0.015) 23px,
+        rgba(0,0,0,0.015) 24px
+      );
+    }
+    .note-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 24px 8px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== 自定义下拉框（支持分组） ===== */
+    .custom-select {
+      position: relative;
+      min-width: 180px;
+      max-width: 260px;
+      flex-shrink: 0;
+    }
+    .select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid #d5d0c8;
+      background: #fff;
+      font-size: 13px;
+      color: #3a3a3a;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .select-trigger:hover {
+      border-color: #b8b3ab;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .select-trigger.open {
+      border-color: #8b7355;
+      box-shadow: 0 0 0 3px rgba(139,115,85,0.1);
+    }
+    .select-trigger .arrow {
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid #999;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .select-trigger.open .arrow {
+      transform: rotate(180deg);
+    }
+    .select-dropdown {
+      position: fixed;
+      min-width: 220px;
+      width: max-content;
+      max-height: 400px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #d5d0c8;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+      list-style: none;
+      padding: 4px;
+      margin: 0;
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 99999;
+    }
+    .select-dropdown.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .select-dropdown::-webkit-scrollbar {
+      width: 5px;
+    }
+    .select-dropdown::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .select-dropdown::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.15);
+      border-radius: 10px;
+    }
+    .select-dropdown .group-label {
+      padding: 6px 12px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #8b7355;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      border-top: 1px solid #f0ebe3;
+      margin-top: 4px;
+    }
+    .select-dropdown .group-label:first-child {
+      border-top: none;
+      margin-top: 0;
+    }
+    .select-dropdown li {
+      padding: 7px 12px 7px 20px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: #fff;
+    }
+    .select-dropdown li:hover,
+    .select-dropdown li.focused {
+      background: #f5f0e8;
+      color: #3a3a3a;
+    }
+    .select-dropdown li.selected {
+      background: #ede8de;
+      color: #5a4a3a;
+      font-weight: 500;
+    }
+    .select-dropdown .font-search {
+      padding: 6px 8px;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
+      border-bottom: 1px solid #f0ebe3;
+      margin-bottom: 4px;
+    }
+    .select-dropdown .font-search input {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #d5d0c8;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .select-dropdown .font-search input:focus {
+      border-color: #8b7355;
+      box-shadow: 0 0 0 2px rgba(139,115,85,0.1);
+    }
+
+    .note-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #777;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #d5d0c8;
+      background: #fff;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .note-toggle:hover {
+      border-color: #b8b3ab;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .note-toggle input {
+      width: 14px;
+      height: 14px;
+      accent-color: #8b7355;
+      cursor: pointer;
+    }
+    .note-btn-icon {
+      font: inherit;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #d5d0c8;
+      background: #fff;
+      color: #999;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      margin-left: auto;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .note-btn-icon:hover {
+      background: #faf8f4;
+      color: #555;
+      border-color: #b8b3ab;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .note-btn-icon:active { transform: scale(0.92); }
+    .note-font-error {
+      font-size: 12px;
+      color: #c0392b;
+      padding: 0 24px;
+      min-height: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    .note-body {
+      padding: 0 24px 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .note-editor-wrap::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      bottom: 36px;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 31px,
+        rgba(0,0,0,0.06) 31px,
+        rgba(0,0,0,0.06) 32px
+      );
+      z-index: 0;
+    }
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      padding: 20px 20px 36px 20px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #3a3a3a;
+      font-size: 17px;
+      line-height: 1.8;
+      resize: vertical;
+      outline: none;
+      font-family: inherit;
+      position: relative;
+      z-index: 1;
+    }
+    textarea::placeholder {
+      color: #bbb;
+    }
+    .note-count {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      font-size: 12px;
+      color: #aaa;
+      font-variant-numeric: tabular-nums;
+      pointer-events: none;
+      background: rgba(254,249,231,0.9);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .note-footer {
+      padding: 0 24px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .note-export-btn {
+      font: inherit;
+      width: 100%;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: 1px solid #d5d0c8;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      background: #fff;
+      color: #5a4a3a;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .note-export-btn:hover {
+      background: #faf8f4;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .note-export-btn:active {
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .note-hint {
+      font-size: 12px;
+      color: #aaa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .note-hint kbd {
+      font-family: inherit;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #d5d0c8;
+      background: #fff;
+      color: #888;
+    }
+    .toast {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #5a4a3a;
+      color: #fef9e7;
+      padding: 10px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 999;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .page-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #8b7355;
+      letter-spacing: 4px;
+      text-align: center;
+      margin-bottom: 4px;
+      text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+    }
+    .page-subtitle {
+      font-size: 12px;
+      color: #aaa;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .loading-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #999;
+      margin-left: 8px;
+    }
+    .loading-indicator::after {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border: 2px solid #ddd;
+      border-top-color: #8b7355;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (max-width: 480px) {
+      body { padding: 24px 12px 32px; }
+      textarea { min-height: 200px; }
+      .note-header { padding: 16px 16px 6px; }
+      .note-body { padding: 0 16px 12px; }
+      .note-footer { padding: 0 16px 20px; }
+      .custom-select { min-width: 140px; max-width: 200px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-title">便签</div>
+    <div class="page-subtitle">STICKY NOTE</div>
+    <div class="sticky-note">
+      <div class="tape"></div>
+      <div class="paper-texture"></div>
+      <div class="note-header">
+        <div class="custom-select" id="fontSelectWrap">
+          <div class="select-trigger" id="fontTrigger" tabindex="0">
+            <span id="fontLabel">加载中…</span>
+            <span class="arrow"></span>
+          </div>
+          <ul class="select-dropdown" id="fontDropdown"></ul>
+        </div>
+        <label class="note-toggle">
+          <input type="checkbox" id="dateToggle">
+          <span>日期</span>
+        </label>
+        <button class="note-btn-icon" id="clearBtn" title="清空">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+      <div class="note-font-error" id="fontError"></div>
+      <div class="note-body">
+        <div class="note-editor-wrap">
+          <textarea id="editor" placeholder="在此输入文字…"></textarea>
+          <span class="note-count"><span id="count">0</span> 字</span>
+        </div>
+      </div>
+      <div class="note-footer">
+        <button class="note-export-btn" id="exportBtn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导出为图片
+        </button>
+        <span class="note-hint">按 <kbd>Ctrl</kbd> + <kbd>Enter</kbd> 快捷导出</span>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const fontTrigger = document.getElementById('fontTrigger');
+    const fontDropdown = document.getElementById('fontDropdown');
+    const fontLabel = document.getElementById('fontLabel');
+    const editor = document.getElementById('editor');
+    const countEl = document.getElementById('count');
+    const toastEl = document.getElementById('toast');
+    const fontError = document.getElementById('fontError');
+    const dateToggle = document.getElementById('dateToggle');
+
+    let fontsConfig = { fonts: [] };
+    let selectedIndex = 0;
+    let focusedIndex = 0;
+    let isOpen = false;
+    let loadedCustomFonts = new Map(); // 缓存已加载的字体
+
+    // 分组字体
+    function groupFonts(fonts) {
+      const groups = {};
+      fonts.forEach((font, idx) => {
+        const name = font.name || '';
+        let category = '其他';
+
+        if (font.type === 'system' || font.type === 'fallback') {
+          category = '系统字体';
+        } else if (name.includes('·')) {
+          category = name.split('·')[0].trim();
+        } else if (name.includes('中文')) {
+          category = '中文字体';
+        } else {
+          category = '其他字体';
+        }
+
+        if (!groups[category]) groups[category] = [];
+        groups[category].push({ ...font, originalIndex: idx });
+      });
+      return groups;
+    }
+
+    async function loadFontsConfig() {
+      try {
+        const res = await fetch('fonts.json');
+        if (!res.ok) throw new Error('加载失败');
+        fontsConfig = await res.json();
+      } catch (e) {
+        fontsConfig = {
+          fonts: [
+            { name: "系统默认", family: "system-ui, -apple-system, sans-serif", type: "system" },
+            { name: "宋体", family: "SimSun, serif", type: "fallback" },
+            { name: "黑体", family: "SimHei, sans-serif", type: "fallback" },
+            { name: "楷体", family: "KaiTi, serif", type: "fallback" },
+            { name: "仿宋", family: "FangSong, serif", type: "fallback" }
+          ]
+        };
+        showToast('fonts.json 未找到，使用默认配置');
+      }
+      initFontSelect();
+    }
+
+    function initFontSelect() {
+      fontDropdown.innerHTML = '';
+
+      // 添加搜索框
+      const searchWrap = document.createElement('div');
+      searchWrap.className = 'font-search';
+      const searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = '搜索字体...';
+      searchInput.addEventListener('input', (e) => filterFonts(e.target.value));
+      searchInput.addEventListener('click', (e) => e.stopPropagation());
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+          e.stopPropagation();
+        }
+      });
+      searchWrap.appendChild(searchInput);
+      fontDropdown.appendChild(searchWrap);
+
+      // 分组渲染
+      const groups = groupFonts(fontsConfig.fonts);
+      const groupOrder = ['系统字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
+
+      let globalIndex = 0;
+      const indexMap = []; // 用于键盘导航映射
+
+      groupOrder.forEach(cat => {
+        if (!groups[cat] || groups[cat].length === 0) return;
+
+        const label = document.createElement('div');
+        label.className = 'group-label';
+        label.textContent = cat + ` (${groups[cat].length})`;
+        fontDropdown.appendChild(label);
+
+        groups[cat].forEach(font => {
+          const li = document.createElement('li');
+          li.textContent = font.name.includes('·') ? font.name.split('·')[1].trim() : font.name;
+          li.dataset.index = font.originalIndex;
+          li.dataset.globalIndex = globalIndex;
+          if (font.originalIndex === 0) li.classList.add('selected');
+          fontDropdown.appendChild(li);
+          indexMap.push({ globalIndex, originalIndex: font.originalIndex, element: li });
+          globalIndex++;
+        });
+      });
+
+      fontDropdown.dataset.totalItems = globalIndex;
+      fontDropdown.indexMap = indexMap;
+
+      fontLabel.textContent = fontsConfig.fonts[0]?.name || '选择字体';
+      applyFont(0);
+    }
+
+    function filterFonts(query) {
+      const items = fontDropdown.querySelectorAll('li');
+      const labels = fontDropdown.querySelectorAll('.group-label');
+      query = query.toLowerCase();
+
+      items.forEach(li => {
+        const text = li.textContent.toLowerCase();
+        const match = text.includes(query);
+        li.style.display = match ? '' : 'none';
+      });
+
+      // 隐藏空分组
+      labels.forEach(label => {
+        let next = label.nextElementSibling;
+        let hasVisible = false;
+        while (next && !next.classList.contains('group-label')) {
+          if (next.tagName === 'LI' && next.style.display !== 'none') {
+            hasVisible = true;
+            break;
+          }
+          next = next.nextElementSibling;
+        }
+        label.style.display = hasVisible ? '' : 'none';
+      });
+    }
+
+    function toggleDropdown(force) {
+      isOpen = force !== undefined ? force : !isOpen;
+      fontTrigger.classList.toggle('open', isOpen);
+      if (isOpen) {
+        if (fontDropdown.parentElement !== document.body) {
+          document.body.appendChild(fontDropdown);
+        }
+        const rect = fontTrigger.getBoundingClientRect();
+        fontDropdown.style.top = (rect.bottom + 6) + 'px';
+        fontDropdown.style.left = rect.left + 'px';
+        fontDropdown.classList.add('show');
+
+        // 重置搜索
+        const searchInput = fontDropdown.querySelector('.font-search input');
+        if (searchInput) {
+          searchInput.value = '';
+          filterFonts('');
+          setTimeout(() => searchInput.focus(), 50);
+        }
+
+        focusedIndex = 0;
+        updateFocus();
+        scrollToFocused();
+      } else {
+        fontDropdown.classList.remove('show');
+        const wrap = document.getElementById('fontSelectWrap');
+        if (wrap && fontDropdown.parentElement !== wrap) {
+          wrap.appendChild(fontDropdown);
+        }
+      }
+    }
+
+    function updateFocus() {
+      fontDropdown.querySelectorAll('li').forEach(li => {
+        li.classList.remove('focused');
+      });
+      const visibleItems = Array.from(fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+      if (visibleItems[focusedIndex]) {
+        visibleItems[focusedIndex].classList.add('focused');
+      }
+    }
+
+    function scrollToFocused() {
+      const focused = fontDropdown.querySelector('li.focused');
+      if (focused) {
+        focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+
+    function selectIndex(index) {
+      if (index < 0 || index >= fontsConfig.fonts.length) return;
+      selectedIndex = index;
+      fontLabel.textContent = fontsConfig.fonts[index]?.name || '选择字体';
+      fontDropdown.querySelectorAll('li').forEach(li => {
+        li.classList.toggle('selected', parseInt(li.dataset.index) === index);
+      });
+      applyFont(index);
+      toggleDropdown(false);
+    }
+
+    fontTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDropdown();
+    });
+
+    fontDropdown.addEventListener('click', (e) => {
+      const li = e.target.closest('li[data-index]');
+      if (li) selectIndex(parseInt(li.dataset.index));
+    });
+
+    fontTrigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleDropdown();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!isOpen) toggleDropdown(true);
+        const visible = Array.from(fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+        focusedIndex = Math.min(focusedIndex + 1, visible.length - 1);
+        updateFocus();
+        scrollToFocused();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen) toggleDropdown(true);
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        updateFocus();
+        scrollToFocused();
+      } else if (e.key === 'Escape') {
+        toggleDropdown(false);
+      }
+    });
+
+    fontDropdown.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const visible = Array.from(fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+        if (visible[focusedIndex]) {
+          selectIndex(parseInt(visible[focusedIndex].dataset.index));
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const visible = Array.from(fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+        focusedIndex = Math.min(focusedIndex + 1, visible.length - 1);
+        updateFocus();
+        scrollToFocused();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        focusedIndex = Math.max(focusedIndex - 1, 0);
+        updateFocus();
+        scrollToFocused();
+      } else if (e.key === 'Escape') {
+        toggleDropdown(false);
+        fontTrigger.focus();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!document.getElementById('fontSelectWrap').contains(e.target)) {
+        toggleDropdown(false);
+      }
+    });
+
+    async function applyFont(index) {
+      const font = fontsConfig.fonts[index];
+      fontError.textContent = '';
+      if (!font) return;
+
+      if (font.type === 'custom' && font.src) {
+        // 检查是否已缓存
+        if (loadedCustomFonts.has(font.src)) {
+          editor.style.fontFamily = loadedCustomFonts.get(font.src);
+          return;
+        }
+
+        try {
+          const ff = new FontFace(font.family.replace(/['"]/g, ''), `url(${font.src})`);
+          await ff.load();
+          document.fonts.add(ff);
+          loadedCustomFonts.set(font.src, font.family);
+          editor.style.fontFamily = font.family;
+          showToast(`字体 "${font.name}" 加载成功`);
+        } catch (e) {
+          fontError.textContent = `字体 "${font.name}" 加载失败，已回退到系统字体`;
+          editor.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+        }
+      } else {
+        editor.style.fontFamily = font.family;
+      }
+    }
+
+    editor.addEventListener('input', () => {
+      countEl.textContent = editor.value.length;
+    });
+
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 2200);
+    }
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      editor.value = '';
+      countEl.textContent = '0';
+      showToast('已清空');
+    });
+
+    editor.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        exportImage();
+      }
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', exportImage);
+
+    function wrapText(ctx, text, maxWidth) {
+      const lines = [];
+      const paragraphs = text.split('\n');
+      paragraphs.forEach(para => {
+        if (!para) { lines.push(''); return; }
+        let line = '';
+        for (let i = 0; i < para.length; i++) {
+          const testLine = line + para[i];
+          if (ctx.measureText(testLine).width > maxWidth && line.length > 0) {
+            lines.push(line);
+            line = para[i];
+          } else {
+            line = testLine;
+          }
+        }
+        lines.push(line);
+      });
+      return lines;
+    }
+
+    async function exportImage() {
+      const text = editor.value;
+      if (!text.trim()) { showToast('请输入内容'); return; }
+
+      const font = fontsConfig.fonts[selectedIndex];
+      let fontFamily = font?.family || 'system-ui, -apple-system, sans-serif';
+
+      // 如果字体加载失败，回退到系统字体
+      if (font?.type === 'custom' && fontError.textContent) {
+        fontFamily = 'system-ui, -apple-system, sans-serif';
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const dpr = Math.max(window.devicePixelRatio || 2, 2);
+
+      const padding = 48;
+      const contentWidth = 520;
+      const fontSize = 22;
+      const lineHeight = 38;
+      const bottomBarHeight = 56;
+
+      // 等待自定义字体加载完成（用于 Canvas）
+      if (font?.type === 'custom' && font.src && !fontError.textContent) {
+        try {
+          await document.fonts.load(`${fontSize}px ${fontFamily}`);
+        } catch (e) {
+          console.warn('Canvas 字体加载等待超时，继续导出');
+        }
+      }
+
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      const lines = wrapText(ctx, text, contentWidth);
+      const textHeight = lines.length * lineHeight;
+
+      const canvasWidth = contentWidth + padding * 2;
+      const canvasHeight = Math.max(320, textHeight + padding * 2 + bottomBarHeight);
+
+      canvas.width = canvasWidth * dpr;
+      canvas.height = canvasHeight * dpr;
+      ctx.scale(dpr, dpr);
+
+      // 背景
+      ctx.fillStyle = '#fef9e7';
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // 横线纹理
+      ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+      ctx.lineWidth = 1;
+      for (let y = padding + 24; y < canvasHeight - bottomBarHeight; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(canvasWidth - padding, y);
+        ctx.stroke();
+      }
+
+      // 边框
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(12, 12, canvasWidth - 24, canvasHeight - 24);
+
+      // 文字
+      ctx.fillStyle = '#3a3a3a';
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      ctx.textBaseline = 'top';
+      lines.forEach((line, i) => {
+        ctx.fillText(line, padding, padding + i * lineHeight);
+      });
+
+      // 底部栏
+      const barY = canvasHeight - bottomBarHeight + 10;
+      ctx.font = '500 13px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#aaa';
+
+      if (dateToggle.checked) {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+        ctx.textAlign = 'left';
+        ctx.fillText(dateStr, padding, barY);
+      }
+
+      ctx.textAlign = 'center';
+      ctx.fillText('便签', canvasWidth / 2, barY);
+
+      // 导出
+      const link = document.createElement('a');
+      link.download = `便签_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      showToast('图片已导出');
+    }
+
+    loadFontsConfig();
+  </script>
+</body>
+</html>
