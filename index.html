@@ -1,1242 +1,1590 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>便签 ·  memo-paper</title>
-  <style>
-    :root {
-      --bg: #f0ebe3;
-      --accent: #8b7355;
-      --accent-soft: #a69076;
-      --text: #3a3a3a;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便签 · memo-paper</title>
+    <style>
+        :root {
+            --bg: #f0ebe3;
+            --accent: #8b7355;
+            --accent-soft: #a69076;
+            --text: #3a3a3a;
+        }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px 40px;
-      position: relative;
-    }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px 40px;
+            position: relative;
+        }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse at 25% 15%, rgba(255,255,255,0.5) 0%, transparent 50%),
-        radial-gradient(ellipse at 75% 85%, rgba(255,255,255,0.35) 0%, transparent 50%),
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.006) 2px, rgba(0,0,0,0.006) 3px);
-      pointer-events: none;
-      z-index: 0;
-    }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 25% 15%, rgba(255, 255, 255, 0.5) 0%, transparent 50%),
+                radial-gradient(ellipse at 75% 85%, rgba(255, 255, 255, 0.35) 0%, transparent 50%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.006) 2px, rgba(0, 0, 0, 0.006) 3px);
+            pointer-events: none;
+            z-index: 0;
+        }
 
-    /* 标题 */
-    .header {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      margin-bottom: 20px;
-      animation: fadeInDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .header h1 {
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--accent);
-      letter-spacing: 14px;
-      opacity: 0.75;
-    }
-    .header p {
-      font-size: 10px;
-      color: #c4b49a;
-      letter-spacing: 5px;
-      margin-top: 3px;
-      text-transform: uppercase;
-    }
+        .header {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: fadeInDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 14px;
+            opacity: 0.75;
+        }
+        .header p {
+            font-size: 10px;
+            color: #c4b49a;
+            letter-spacing: 5px;
+            margin-top: 3px;
+            text-transform: uppercase;
+        }
 
-    /* 便签 */
-    .sticky-note {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 500px;
-      border-radius: 3px;
-      transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
-      transform: rotate(-0.4deg);
-      box-shadow:
-        0 1px 2px rgba(0,0,0,0.05),
-        0 3px 8px rgba(0,0,0,0.04),
-        0 8px 20px rgba(0,0,0,0.03),
-        0 16px 40px rgba(0,0,0,0.02);
-      animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
-    }
-    .sticky-note:hover {
-      transform: rotate(0deg) translateY(-2px);
-      box-shadow:
-        0 2px 6px rgba(0,0,0,0.06),
-        0 6px 14px rgba(0,0,0,0.05),
-        0 12px 28px rgba(0,0,0,0.04),
-        0 24px 48px rgba(0,0,0,0.03);
-    }
+        .sticky-note {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 3px;
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
+            transform: rotate(-0.4deg);
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.05),
+                0 3px 8px rgba(0, 0, 0, 0.04),
+                0 8px 20px rgba(0, 0, 0, 0.03),
+                0 16px 40px rgba(0, 0, 0, 0.02);
+            animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+        }
+        .sticky-note:hover {
+            transform: rotate(0deg) translateY(-2px);
+            box-shadow:
+                0 2px 6px rgba(0, 0, 0, 0.06),
+                0 6px 14px rgba(0, 0, 0, 0.05),
+                0 12px 28px rgba(0, 0, 0, 0.04),
+                0 24px 48px rgba(0, 0, 0, 0.03);
+        }
 
-    /* 胶带 */
-    .tape {
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%) rotate(-2deg);
-      width: 80px;
-      height: 28px;
-      background: rgba(255,255,255,0.55);
-      border: 1px solid rgba(255,255,255,0.4);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      backdrop-filter: blur(4px);
-      z-index: 10;
-      border-radius: 2px;
-      overflow: hidden;
-      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .sticky-note:hover .tape {
-      transform: translateX(-50%) rotate(-0.5deg);
-    }
-    .tape::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(255,255,255,0.35) 4px, rgba(255,255,255,0.35) 8px);
-    }
+        .tape {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-2deg);
+            width: 80px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            border-radius: 2px;
+            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .sticky-note:hover .tape {
+            transform: translateX(-50%) rotate(-0.5deg);
+        }
+        .tape::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(255, 255, 255, 0.35) 4px, rgba(255, 255, 255, 0.35) 8px);
+        }
 
-    /* 纸张纹理 */
-    .paper-texture {
-      position: absolute;
-      inset: 0;
-      border-radius: 3px;
-      opacity: 0.4;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .paper-texture.lines {
-      background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.03) 31px, rgba(0,0,0,0.03) 32px);
-    }
-    .paper-texture.grid {
-      background:
-        repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.03) 31px, rgba(0,0,0,0.03) 32px),
-        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0,0,0,0.02) 31px, rgba(0,0,0,0.02) 32px);
-    }
-    .paper-texture.blank { background: none; }
+        .paper-texture {
+            position: absolute;
+            inset: 0;
+            border-radius: 3px;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .paper-texture.lines {
+            background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0, 0, 0, 0.03) 31px, rgba(0, 0, 0, 0.03) 32px);
+        }
+        .paper-texture.grid {
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0, 0, 0, 0.03) 31px, rgba(0, 0, 0, 0.03) 32px),
+                repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0, 0, 0, 0.02) 31px, rgba(0, 0, 0, 0.02) 32px);
+        }
+        .paper-texture.blank {
+            background: none;
+        }
 
-    .note-inner {
-      position: relative;
-      z-index: 1;
-      padding: 20px 22px 10px;
-    }
+        .note-inner {
+            position: relative;
+            z-index: 1;
+            padding: 20px 22px 10px;
+        }
 
-    /* 工具栏 */
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
 
-    /* 字体选择 */
-    .custom-select {
-      position: relative;
-      min-width: 130px;
-      max-width: 170px;
-      flex-shrink: 0;
-    }
-    .select-trigger {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.5);
-      font-size: 13px;
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-      user-select: none;
-    }
-    .select-trigger:hover {
-      background: rgba(255,255,255,0.7);
-      border-color: rgba(0,0,0,0.08);
-    }
-    .select-trigger.open {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(139,115,85,0.06);
-      background: rgba(255,255,255,0.85);
-    }
-    .select-trigger .arrow {
-      width: 0; height: 0;
-      border-left: 3.5px solid transparent;
-      border-right: 3.5px solid transparent;
-      border-top: 3.5px solid #bbb;
-      transition: transform 0.2s ease;
-      flex-shrink: 0;
-    }
-    .select-trigger.open .arrow { transform: rotate(180deg); }
+        .custom-select {
+            position: relative;
+            min-width: 130px;
+            max-width: 170px;
+            flex-shrink: 0;
+        }
+        .select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            user-select: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .select-trigger:hover {
+            background: rgba(255, 255, 255, 0.7);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        .select-trigger.open {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.06);
+            background: rgba(255, 255, 255, 0.85);
+        }
+        .select-trigger .arrow {
+            width: 0;
+            height: 0;
+            border-left: 3.5px solid transparent;
+            border-right: 3.5px solid transparent;
+            border-top: 3.5px solid #bbb;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .select-trigger.open .arrow {
+            transform: rotate(180deg);
+        }
 
-    .select-dropdown {
-      position: fixed;
-      min-width: 210px;
-      width: max-content;
-      max-height: 320px;
-      overflow-y: auto;
-      background: rgba(255,255,255,0.98);
-      border: 1px solid rgba(0,0,0,0.05);
-      border-radius: 10px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.05);
-      list-style: none;
-      padding: 4px;
-      margin: 0;
-      opacity: 0;
-      transform: translateY(-6px) scale(0.96);
-      pointer-events: none;
-      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-      z-index: 99999;
-    }
-    .select-dropdown.show {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
-    .select-dropdown::-webkit-scrollbar { width: 4px; }
-    .select-dropdown::-webkit-scrollbar-track { background: transparent; }
-    .select-dropdown::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        .select-dropdown {
+            position: fixed;
+            min-width: 210px;
+            width: max-content;
+            max-width: 320px;
+            max-height: 320px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.05);
+            list-style: none;
+            padding: 4px;
+            margin: 0;
+            opacity: 0;
+            transform: translateY(-6px) scale(0.96);
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 99999;
+        }
+        .select-dropdown.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .select-dropdown::-webkit-scrollbar {
+            width: 4px;
+        }
+        .select-dropdown::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .select-dropdown::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
 
-    .select-dropdown .group-label {
-      padding: 5px 12px 2px;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      pointer-events: none;
-      border-top: 1px solid rgba(0,0,0,0.03);
-      margin-top: 3px;
-    }
-    .select-dropdown .group-label:first-child { border-top: none; margin-top: 0; }
-    .select-dropdown li {
-      padding: 6px 12px 6px 18px;
-      border-radius: 6px;
-      font-size: 13px;
-      color: #555;
-      cursor: pointer;
-      transition: all 0.12s ease;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .select-dropdown li:hover, .select-dropdown li.focused {
-      background: rgba(139,115,85,0.06);
-      color: var(--text);
-    }
-    .select-dropdown li.selected {
-      background: rgba(139,115,85,0.12);
-      color: #5a4a3a;
-      font-weight: 500;
-    }
-    .select-dropdown .font-search {
-      padding: 5px 7px;
-      position: sticky;
-      top: 0;
-      background: rgba(255,255,255,0.98);
-      z-index: 1;
-      border-bottom: 1px solid rgba(0,0,0,0.04);
-      margin-bottom: 3px;
-    }
-    .select-dropdown .font-search input {
-      width: 100%;
-      padding: 6px 9px;
-      border: 1px solid rgba(0,0,0,0.06);
-      border-radius: 6px;
-      font-size: 13px;
-      outline: none;
-      font-family: inherit;
-      background: rgba(0,0,0,0.02);
-    }
-    .select-dropdown .font-search input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(139,115,85,0.06);
-      background: #fff;
-    }
+        .select-dropdown .group-label {
+            padding: 5px 12px 2px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            pointer-events: none;
+            border-top: 1px solid rgba(0, 0, 0, 0.03);
+            margin-top: 3px;
+        }
+        .select-dropdown .group-label:first-child {
+            border-top: none;
+            margin-top: 0;
+        }
+        .select-dropdown li {
+            padding: 6px 12px 6px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .select-dropdown li:hover,
+        .select-dropdown li.focused {
+            background: rgba(139, 115, 85, 0.06);
+            color: var(--text);
+        }
+        .select-dropdown li.selected {
+            background: rgba(139, 115, 85, 0.12);
+            color: #5a4a3a;
+            font-weight: 500;
+        }
+        .select-dropdown .font-search {
+            padding: 5px 7px;
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.98);
+            z-index: 1;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            margin-bottom: 3px;
+        }
+        .select-dropdown .font-search input {
+            width: 100%;
+            padding: 6px 9px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            font-family: inherit;
+            background: rgba(0, 0, 0, 0.02);
+        }
+        .select-dropdown .font-search input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(139, 115, 85, 0.06);
+            background: #fff;
+        }
 
-    /* 工具组 */
-    .tool-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .tool-label {
-      font-size: 11px;
-      color: #bbb;
-      white-space: nowrap;
-      user-select: none;
-    }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tool-label {
+            font-size: 11px;
+            color: #bbb;
+            white-space: nowrap;
+            user-select: none;
+        }
 
-    /* 颜色点 */
-    .color-dots {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-    }
-    .color-dot {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      position: relative;
-    }
-    .color-dot:hover { transform: scale(1.25); }
-    .color-dot.active {
-      border-color: rgba(0,0,0,0.15);
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.7), 0 2px 5px rgba(0,0,0,0.12);
-      transform: scale(1.15);
-    }
-    .color-dot[data-color="yellow"] { background: #fef9e7; }
-    .color-dot[data-color="pink"] { background: #ffe4e1; }
-    .color-dot[data-color="blue"] { background: #e0f0ff; }
-    .color-dot[data-color="green"] { background: #e8f5e9; }
-    .color-dot[data-color="purple"] { background: #f3e5f5; }
-    .color-dot[data-color="orange"] { background: #fff3e0; }
+        .color-dots {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .color-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .color-dot:hover {
+            transform: scale(1.25);
+        }
+        .color-dot.active {
+            border-color: rgba(0, 0, 0, 0.15);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7), 0 2px 5px rgba(0, 0, 0, 0.12);
+            transform: scale(1.15);
+        }
+        .color-dot[data-color="yellow"] {
+            background: #fef9e7;
+        }
+        .color-dot[data-color="pink"] {
+            background: #ffe4e1;
+        }
+        .color-dot[data-color="blue"] {
+            background: #e0f0ff;
+        }
+        .color-dot[data-color="green"] {
+            background: #e8f5e9;
+        }
+        .color-dot[data-color="purple"] {
+            background: #f3e5f5;
+        }
+        .color-dot[data-color="orange"] {
+            background: #fff3e0;
+        }
 
-    /* 纸张模式 */
-    .paper-modes {
-      display: flex;
-      gap: 3px;
-      align-items: center;
-    }
-    .paper-mode-btn {
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.4);
-      color: #bbb;
-      font-size: 11px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .paper-mode-btn:hover {
-      background: rgba(255,255,255,0.6);
-      color: #999;
-    }
-    .paper-mode-btn.active {
-      background: rgba(139,115,85,0.12);
-      color: var(--accent);
-      border-color: rgba(139,115,85,0.15);
-    }
+        .paper-modes {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+        .paper-mode-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.4);
+            color: #bbb;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .paper-mode-btn:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: #999;
+        }
+        .paper-mode-btn.active {
+            background: rgba(139, 115, 85, 0.12);
+            color: var(--accent);
+            border-color: rgba(139, 115, 85, 0.15);
+        }
 
-    /* 设置按钮 */
-    .settings-btn {
-      padding: 5px 10px;
-      border-radius: 8px;
-      border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.4);
-      color: #999;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-      margin-left: auto;
-      white-space: nowrap;
-    }
-    .settings-btn:hover {
-      background: rgba(255,255,255,0.6);
-      color: #777;
-    }
-    .settings-btn.active {
-      background: rgba(139,115,85,0.12);
-      color: var(--accent);
-      border-color: rgba(139,115,85,0.15);
-    }
+        .settings-btn {
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.4);
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: #777;
+        }
+        .settings-btn.active {
+            background: rgba(139, 115, 85, 0.12);
+            color: var(--accent);
+            border-color: rgba(139, 115, 85, 0.15);
+        }
 
-    /* 设置面板 */
-    .settings-panel {
-      display: none;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 10px;
-      padding: 8px 12px;
-      background: rgba(255,255,255,0.35);
-      border-radius: 10px;
-      border: 1px solid rgba(0,0,0,0.02);
-      animation: slideDown 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-    .settings-panel.show { display: flex; flex-wrap: wrap; }
-    .setting-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .setting-item label {
-      font-size: 12px;
-      color: #aaa;
-      white-space: nowrap;
-    }
-    .setting-item input[type="range"] {
-      -webkit-appearance: none;
-      width: 70px;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(0,0,0,0.06);
-      outline: none;
-    }
-    .setting-item input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--accent-soft);
-      cursor: pointer;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-      transition: transform 0.15s ease;
-    }
-    .setting-item input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.3);
-    }
-    .setting-item .val {
-      font-size: 12px;
-      color: #999;
-      min-width: 20px;
-      font-variant-numeric: tabular-nums;
-    }
+        .settings-panel {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+            animation: slideDown 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .settings-panel.show {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .setting-item label {
+            font-size: 12px;
+            color: #aaa;
+            white-space: nowrap;
+        }
+        .setting-item input[type="range"] {
+            -webkit-appearance: none;
+            width: 70px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(0, 0, 0, 0.06);
+            outline: none;
+        }
+        .setting-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+            transition: transform 0.15s ease;
+        }
+        .setting-item input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+        }
+        .setting-item .val {
+            font-size: 12px;
+            color: #999;
+            min-width: 20px;
+            font-variant-numeric: tabular-nums;
+        }
 
-    /* 错误提示 */
-    .font-error {
-      font-size: 12px;
-      color: #c0392b;
-      min-height: 16px;
-      margin: -2px 0 4px;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-    .font-error.show { opacity: 1; }
+        .font-error {
+            font-size: 12px;
+            color: #c0392b;
+            min-height: 16px;
+            margin: -2px 0 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .font-error.show {
+            opacity: 1;
+        }
 
-    /* 编辑器 */
-    .editor-wrap {
-      position: relative;
-    }
-    textarea {
-      width: 100%;
-      min-height: 180px;
-      padding: 12px 16px 32px;
-      border: none;
-      border-radius: 4px;
-      background: rgba(255,255,255,0.2);
-      color: var(--text);
-      font-size: 16px;
-      line-height: 1.75;
-      resize: vertical;
-      outline: none;
-      font-family: inherit;
-      transition: background 0.25s ease, box-shadow 0.25s ease;
-    }
-    textarea:focus {
-      background: rgba(255,255,255,0.35);
-      box-shadow: 0 0 0 2px rgba(139,115,85,0.04);
-    }
-    textarea::placeholder { color: #ccc; }
+        .editor-wrap {
+            position: relative;
+        }
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            padding: 12px 16px 32px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text);
+            font-size: 16px;
+            line-height: 1.75;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            transition: background 0.25s ease, box-shadow 0.25s ease;
+        }
+        textarea:focus {
+            background: rgba(255, 255, 255, 0.35);
+            box-shadow: 0 0 0 2px rgba(139, 115, 85, 0.04);
+        }
+        textarea::placeholder {
+            color: #ccc;
+        }
 
-    .note-count {
-      position: absolute;
-      bottom: 8px;
-      right: 10px;
-      font-size: 11px;
-      color: #bbb;
-      font-variant-numeric: tabular-nums;
-      pointer-events: none;
-      background: rgba(255,255,255,0.55);
-      padding: 2px 7px;
-      border-radius: 4px;
-      backdrop-filter: blur(4px);
-      transition: opacity 0.2s ease;
-    }
-    textarea:focus ~ .note-count { opacity: 0.6; }
+        .note-count {
+            position: absolute;
+            bottom: 8px;
+            right: 10px;
+            font-size: 11px;
+            color: #bbb;
+            font-variant-numeric: tabular-nums;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.55);
+            padding: 2px 7px;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+            transition: opacity 0.2s ease;
+        }
+        textarea:focus~.note-count {
+            opacity: 0.6;
+        }
 
-    /* 底部 */
-    .note-footer {
-      padding: 0 22px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      position: relative;
-      z-index: 1;
-      flex-wrap: wrap;
-    }
-    .footer-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .toggle-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-      color: #bbb;
-      cursor: pointer;
-      user-select: none;
-      transition: color 0.2s ease;
-      padding: 4px 6px;
-      border-radius: 6px;
-    }
-    .toggle-btn:hover { color: #999; background: rgba(0,0,0,0.015); }
-    .toggle-btn input {
-      width: 14px;
-      height: 14px;
-      accent-color: var(--accent-soft);
-      cursor: pointer;
-    }
+        .note-footer {
+            padding: 0 22px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toggle-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #bbb;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s ease;
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        .toggle-btn:hover {
+            color: #999;
+            background: rgba(0, 0, 0, 0.015);
+        }
+        .toggle-btn input {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent-soft);
+            cursor: pointer;
+        }
 
-    .export-btn {
-      padding: 8px 18px;
-      border-radius: 8px;
-      border: 1px solid rgba(0,0,0,0.05);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      background: rgba(255,255,255,0.45);
-      color: #5a4a3a;
-      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      letter-spacing: 0.3px;
-      position: relative;
-      overflow: hidden;
-    }
-    .export-btn::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-      transform: translateX(-100%);
-      transition: transform 0.7s ease;
-    }
-    .export-btn:hover::before { transform: translateX(100%); }
-    .export-btn:hover {
-      background: rgba(255,255,255,0.7);
-      transform: translateY(-1px);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    }
-    .export-btn:active { transform: translateY(0) scale(0.97); }
-    .export-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .export-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.45);
+            color: #5a4a3a;
+            transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+        .export-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.7s ease;
+        }
+        .export-btn:hover::before {
+            transform: translateX(100%);
+        }
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+        }
+        .export-btn:active {
+            transform: translateY(0) scale(0.97);
+        }
+        .export-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
 
-    .hint {
-      font-size: 10px;
-      color: #ddd;
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    }
-    .hint kbd {
-      font-family: inherit;
-      font-size: 9px;
-      padding: 1px 4px;
-      border-radius: 3px;
-      border: 1px solid rgba(0,0,0,0.04);
-      background: rgba(255,255,255,0.35);
-      color: #ccc;
-    }
+        .hint {
+            font-size: 10px;
+            color: #ddd;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .hint kbd {
+            font-family: inherit;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            background: rgba(255, 255, 255, 0.35);
+            color: #ccc;
+        }
 
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%) translateY(16px);
-      background: rgba(45,42,38,0.92);
-      color: #d4c4a8;
-      padding: 10px 22px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-      z-index: 9999;
-      white-space: nowrap;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: rgba(45, 42, 38, 0.92);
+            color: #d4c4a8;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 9999;
+            white-space: nowrap;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
 
-    /* 保存状态 */
-    .save-dot {
-      position: fixed;
-      top: 12px;
-      right: 12px;
-      z-index: 100;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #27ae60;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      box-shadow: 0 0 5px rgba(39,174,96,0.25);
-    }
-    .save-dot.show { opacity: 1; }
-    .save-dot.saving {
-      background: #f39c12;
-      box-shadow: 0 0 5px rgba(243,156,18,0.25);
-      animation: pulse 1s ease infinite;
-    }
+        .save-dot {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 100;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #27ae60;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 0 5px rgba(39, 174, 96, 0.25);
+        }
+        .save-dot.show {
+            opacity: 1;
+        }
+        .save-dot.saving {
+            background: #f39c12;
+            box-shadow: 0 0 5px rgba(243, 156, 18, 0.25);
+            animation: pulse 1s ease infinite;
+        }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(14px) rotate(-1deg); }
-      to { opacity: 1; transform: translateY(0) rotate(-0.4deg); }
-    }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px) rotate(-1deg);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotate(-0.4deg);
+            }
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
 
-    @media (max-width: 480px) {
-      body { padding: 24px 12px 32px; }
-      .header h1 { font-size: 20px; letter-spacing: 10px; }
-      .header { margin-bottom: 16px; }
-      .note-inner { padding: 16px 16px 8px; }
-      textarea { min-height: 160px; font-size: 15px; }
-      .note-footer { padding: 0 16px 12px; }
-      .custom-select { min-width: 110px; max-width: 150px; }
-      .toolbar { gap: 8px; }
-      .settings-panel { gap: 12px; padding: 6px 10px; }
-      .tool-label { display: none; }
-    }
-  </style>
+        @media (max-width: 480px) {
+            body {
+                padding: 24px 12px 32px;
+            }
+            .header h1 {
+                font-size: 20px;
+                letter-spacing: 10px;
+            }
+            .header {
+                margin-bottom: 16px;
+            }
+            .note-inner {
+                padding: 16px 16px 8px;
+            }
+            textarea {
+                min-height: 160px;
+                font-size: 15px;
+            }
+            .note-footer {
+                padding: 0 16px 12px;
+            }
+            .custom-select {
+                min-width: 110px;
+                max-width: 150px;
+            }
+            .toolbar {
+                gap: 8px;
+            }
+            .settings-panel {
+                gap: 12px;
+                padding: 6px 10px;
+            }
+            .tool-label {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="save-dot" id="saveDot"></div>
+    <div class="save-dot" id="saveDot"></div>
 
-  <div class="header">
-    <h1>便签</h1>
-    <p>STICKY NOTE</p>
-  </div>
-
-  <div class="sticky-note" id="stickyNote" data-color="yellow">
-    <div class="tape"></div>
-    <div class="paper-texture lines" id="paperTexture"></div>
-
-    <div class="note-inner">
-      <div class="toolbar">
-        <div class="custom-select" id="fontSelectWrap">
-          <div class="select-trigger" id="fontTrigger" tabindex="0">
-            <span id="fontLabel">加载中…</span>
-            <span class="arrow"></span>
-          </div>
-          <ul class="select-dropdown" id="fontDropdown"></ul>
-        </div>
-
-        <div class="tool-group">
-          <span class="tool-label">颜色</span>
-          <div class="color-dots" id="colorDots">
-            <div class="color-dot active" data-color="yellow" title="暖黄"></div>
-            <div class="color-dot" data-color="pink" title="柔粉"></div>
-            <div class="color-dot" data-color="blue" title="淡蓝"></div>
-            <div class="color-dot" data-color="green" title="薄荷"></div>
-            <div class="color-dot" data-color="purple" title="浅紫"></div>
-            <div class="color-dot" data-color="orange" title="暖橙"></div>
-          </div>
-        </div>
-
-        <div class="tool-group">
-          <span class="tool-label">纸张</span>
-          <div class="paper-modes" id="paperModes">
-            <button class="paper-mode-btn active" data-mode="lines" title="横线">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
-            </button>
-            <button class="paper-mode-btn" data-mode="grid" title="方格">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-            </button>
-            <button class="paper-mode-btn" data-mode="blank" title="空白">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <button class="settings-btn" id="settingsBtn" title="排版设置">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          <span>排版</span>
-        </button>
-      </div>
-
-      <div class="settings-panel" id="settingsPanel">
-        <div class="setting-item">
-          <label>字号</label>
-          <input type="range" id="fontSizeSlider" min="14" max="28" value="16" step="1">
-          <span class="val" id="fontSizeValue">16</span>
-        </div>
-        <div class="setting-item">
-          <label>行距</label>
-          <input type="range" id="lineHeightSlider" min="1.4" max="2.4" value="1.75" step="0.05">
-          <span class="val" id="lineHeightValue">1.75</span>
-        </div>
-      </div>
-
-      <div class="font-error" id="fontError"></div>
-
-      <div class="editor-wrap">
-        <textarea id="editor" placeholder="在此输入文字…"></textarea>
-        <span class="note-count"><span id="count">0</span> 字</span>
-      </div>
+    <div class="header">
+        <h1>便签</h1>
+        <p>MEMO-PAPER</p>
     </div>
 
-    <div class="note-footer">
-      <div class="footer-left">
-        <label class="toggle-btn">
-          <input type="checkbox" id="dateToggle">
-          <span>显示日期</span>
-        </label>
-        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 导出</span>
-      </div>
-      <button class="export-btn" id="exportBtn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        导出图片
-      </button>
+    <div class="sticky-note" id="stickyNote" data-color="yellow">
+        <div class="tape"></div>
+        <div class="paper-texture lines" id="paperTexture"></div>
+
+        <div class="note-inner">
+            <div class="toolbar">
+                <div class="custom-select" id="fontSelectWrap">
+                    <div class="select-trigger" id="fontTrigger" tabindex="0">
+                        <span id="fontLabel">加载中…</span>
+                        <span class="arrow"></span>
+                    </div>
+                    <ul class="select-dropdown" id="fontDropdown"></ul>
+                </div>
+
+                <div class="tool-group">
+                    <span class="tool-label">颜色</span>
+                    <div class="color-dots" id="colorDots">
+                        <div class="color-dot active" data-color="yellow" title="暖黄"></div>
+                        <div class="color-dot" data-color="pink" title="柔粉"></div>
+                        <div class="color-dot" data-color="blue" title="淡蓝"></div>
+                        <div class="color-dot" data-color="green" title="薄荷"></div>
+                        <div class="color-dot" data-color="purple" title="浅紫"></div>
+                        <div class="color-dot" data-color="orange" title="暖橙"></div>
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <span class="tool-label">纸张</span>
+                    <div class="paper-modes" id="paperModes">
+                        <button class="paper-mode-btn active" data-mode="lines" title="横线">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
+                        </button>
+                        <button class="paper-mode-btn" data-mode="grid" title="方格">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                        </button>
+                        <button class="paper-mode-btn" data-mode="blank" title="空白">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="settings-btn" id="settingsBtn" title="排版设置">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>排版</span>
+                </button>
+            </div>
+
+            <div class="settings-panel" id="settingsPanel">
+                <div class="setting-item">
+                    <label>字号</label>
+                    <input type="range" id="fontSizeSlider" min="14" max="28" value="16" step="1">
+                    <span class="val" id="fontSizeValue">16</span>
+                </div>
+                <div class="setting-item">
+                    <label>行距</label>
+                    <input type="range" id="lineHeightSlider" min="1.4" max="2.4" value="1.75" step="0.05">
+                    <span class="val" id="lineHeightValue">1.75</span>
+                </div>
+            </div>
+
+            <div class="font-error" id="fontError"></div>
+
+            <div class="editor-wrap">
+                <textarea id="editor" placeholder="在此输入文字…"></textarea>
+                <span class="note-count"><span id="count">0</span> 字</span>
+            </div>
+        </div>
+
+        <div class="note-footer">
+            <div class="footer-left">
+                <label class="toggle-btn">
+                    <input type="checkbox" id="dateToggle">
+                    <span>显示日期</span>
+                </label>
+                <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 导出</span>
+            </div>
+            <button class="export-btn" id="exportBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                导出图片
+            </button>
+        </div>
     </div>
-  </div>
 
-  <div class="toast" id="toast">
-    <span id="toastText"></span>
-  </div>
+    <div class="toast" id="toast">
+        <span id="toastText"></span>
+    </div>
 
-  <script>
-    const state = {
-      fontsConfig: { fonts: [] },
-      selectedFontIndex: 0,
-      focusedIndex: 0,
-      isDropdownOpen: false,
-      loadedCustomFonts: new Map(),
-      currentColor: 'yellow',
-      paperMode: 'lines',
-      fontSize: 16,
-      lineHeight: 1.75,
-      showDate: false,
-      settingsOpen: false,
-      saveTimer: null,
-      isSaving: false
-    };
+    <script>
+        (function() {
+            // ---------- 可靠的默认字体配置 ----------
+            const DEFAULT_FONTS = [
+                { name: '系统默认', family: 'system-ui, -apple-system, sans-serif', type: 'system' },
+                { name: '宋体', family: 'SimSun, serif', type: 'fallback' },
+                { name: '黑体', family: 'SimHei, sans-serif', type: 'fallback' },
+                { name: '楷体', family: 'KaiTi, serif', type: 'fallback' },
+                { name: '仿宋', family: 'FangSong, serif', type: 'fallback' },
+            ];
 
-    const colors = {
-      yellow: '#fef9e7',
-      pink: '#ffe4e1',
-      blue: '#e0f0ff',
-      green: '#e8f5e9',
-      purple: '#f3e5f5',
-      orange: '#fff3e0'
-    };
+            // ---------- 全局状态 ----------
+            const state = {
+                fontsConfig: { fonts: [...DEFAULT_FONTS] },
+                selectedFontIndex: 0,
+                focusedIndex: 0,
+                isDropdownOpen: false,
+                loadedCustomFonts: new Map(),
+                currentColor: 'yellow',
+                paperMode: 'lines',
+                fontSize: 16,
+                lineHeight: 1.75,
+                showDate: false,
+                settingsOpen: false,
+                saveTimer: null,
+                isSaving: false,
+                isInitialLoad: true, // 初始加载标记，避免不必要的保存
+            };
 
-    const els = {
-      saveDot: document.getElementById('saveDot'),
-      fontTrigger: document.getElementById('fontTrigger'),
-      fontDropdown: document.getElementById('fontDropdown'),
-      fontLabel: document.getElementById('fontLabel'),
-      editor: document.getElementById('editor'),
-      count: document.getElementById('count'),
-      toast: document.getElementById('toast'),
-      toastText: document.getElementById('toastText'),
-      fontError: document.getElementById('fontError'),
-      dateToggle: document.getElementById('dateToggle'),
-      stickyNote: document.getElementById('stickyNote'),
-      paperTexture: document.getElementById('paperTexture'),
-      fontSizeSlider: document.getElementById('fontSizeSlider'),
-      fontSizeValue: document.getElementById('fontSizeValue'),
-      lineHeightSlider: document.getElementById('lineHeightSlider'),
-      lineHeightValue: document.getElementById('lineHeightValue'),
-      settingsBtn: document.getElementById('settingsBtn'),
-      settingsPanel: document.getElementById('settingsPanel'),
-      exportBtn: document.getElementById('exportBtn')
-    };
+            const colors = {
+                yellow: '#fef9e7',
+                pink: '#ffe4e1',
+                blue: '#e0f0ff',
+                green: '#e8f5e9',
+                purple: '#f3e5f5',
+                orange: '#fff3e0',
+            };
 
-    async function init() {
-      await loadFontsConfig();
-      loadFromStorage();
-      setupEvents();
-      updateEditorStyle();
-      updatePaperTexture();
-      updateNoteColor();
-    }
+            // ---------- DOM 引用 ----------
+            const els = {
+                saveDot: document.getElementById('saveDot'),
+                fontTrigger: document.getElementById('fontTrigger'),
+                fontDropdown: document.getElementById('fontDropdown'),
+                fontLabel: document.getElementById('fontLabel'),
+                fontSelectWrap: document.getElementById('fontSelectWrap'),
+                editor: document.getElementById('editor'),
+                count: document.getElementById('count'),
+                toast: document.getElementById('toast'),
+                toastText: document.getElementById('toastText'),
+                fontError: document.getElementById('fontError'),
+                dateToggle: document.getElementById('dateToggle'),
+                stickyNote: document.getElementById('stickyNote'),
+                paperTexture: document.getElementById('paperTexture'),
+                fontSizeSlider: document.getElementById('fontSizeSlider'),
+                fontSizeValue: document.getElementById('fontSizeValue'),
+                lineHeightSlider: document.getElementById('lineHeightSlider'),
+                lineHeightValue: document.getElementById('lineHeightValue'),
+                settingsBtn: document.getElementById('settingsBtn'),
+                settingsPanel: document.getElementById('settingsPanel'),
+                exportBtn: document.getElementById('exportBtn'),
+            };
 
-    function groupFonts(fonts) {
-      const groups = {};
-      fonts.forEach((font, idx) => {
-        const name = font.name || '';
-        let category = '其他';
-        if (font.type === 'system' || font.type === 'fallback') category = '系统字体';
-        else if (name.includes('·')) category = name.split('·')[0].trim();
-        else if (name.includes('中文')) category = '中文字体';
-        else category = '其他字体';
-        if (!groups[category]) groups[category] = [];
-        groups[category].push({ ...font, originalIndex: idx });
-      });
-      return groups;
-    }
+            // ---------- 工具函数 ----------
+            function showToast(msg) {
+                els.toastText.textContent = msg;
+                els.toast.classList.add('show');
+                clearTimeout(els._toastTimer);
+                els._toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+            }
 
-    async function loadFontsConfig() {
-      try {
-        const res = await fetch('fonts.json');
-        if (!res.ok) throw new Error('加载失败');
-        state.fontsConfig = await res.json();
-      } catch (e) {
-        state.fontsConfig = {
-          fonts: [
-            { name: "系统默认", family: "system-ui, -apple-system, sans-serif", type: "system" },
-            { name: "宋体", family: "SimSun, serif", type: "fallback" },
-            { name: "黑体", family: "SimHei, sans-serif", type: "fallback" },
-            { name: "楷体", family: "KaiTi, serif", type: "fallback" },
-            { name: "仿宋", family: "FangSong, serif", type: "fallback" }
-          ]
-        };
-        showToast('fonts.json 未找到，使用默认配置');
-      }
-      initFontSelect();
-    }
+            function getDefaultFonts() {
+                return JSON.parse(JSON.stringify(DEFAULT_FONTS));
+            }
 
-    function initFontSelect() {
-      els.fontDropdown.innerHTML = '';
-      const searchWrap = document.createElement('div');
-      searchWrap.className = 'font-search';
-      const searchInput = document.createElement('input');
-      searchInput.type = 'text';
-      searchInput.placeholder = '搜索字体...';
-      searchInput.addEventListener('input', (e) => filterFonts(e.target.value));
-      searchInput.addEventListener('click', (e) => e.stopPropagation());
-      searchInput.addEventListener('keydown', (e) => {
-        if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) e.stopPropagation();
-      });
-      searchWrap.appendChild(searchInput);
-      els.fontDropdown.appendChild(searchWrap);
+            // ---------- 字体分组 ----------
+            function groupFonts(fonts) {
+                const groups = {};
+                fonts.forEach((font, idx) => {
+                    const name = font.name || '';
+                    let category = '其他';
+                    if (font.type === 'system' || font.type === 'fallback') {
+                        category = '系统字体';
+                    } else if (name.includes('·')) {
+                        category = name.split('·')[0].trim();
+                    } else if (/[\u4e00-\u9fa5]/.test(name)) {
+                        category = '中文字体';
+                    } else {
+                        category = '其他字体';
+                    }
+                    if (!groups[category]) groups[category] = [];
+                    groups[category].push({ ...font, originalIndex: idx });
+                });
+                return groups;
+            }
 
-      const groups = groupFonts(state.fontsConfig.fonts);
-      const groupOrder = ['系统字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
-      let globalIndex = 0;
-      const indexMap = [];
+            // ---------- 加载字体配置 ----------
+            async function loadFontsConfig() {
+                let loaded = false;
+                try {
+                    const res = await fetch('fonts.json');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && Array.isArray(data.fonts) && data.fonts.length > 0) {
+                            state.fontsConfig = data;
+                            loaded = true;
+                        } else {
+                            console.warn('fonts.json 中 fonts 数组为空或不存在，使用默认配置');
+                        }
+                    } else {
+                        console.warn('fonts.json 加载失败 (HTTP ' + res.status + ')，使用默认配置');
+                    }
+                } catch (e) {
+                    console.warn('fonts.json 加载异常，使用默认配置:', e.message);
+                }
 
-      groupOrder.forEach(cat => {
-        if (!groups[cat] || groups[cat].length === 0) return;
-        const label = document.createElement('div');
-        label.className = 'group-label';
-        label.textContent = cat + ` (${groups[cat].length})`;
-        els.fontDropdown.appendChild(label);
-        groups[cat].forEach(font => {
-          const li = document.createElement('li');
-          li.textContent = font.name.includes('·') ? font.name.split('·')[1].trim() : font.name;
-          li.dataset.index = font.originalIndex;
-          li.dataset.globalIndex = globalIndex;
-          if (font.originalIndex === 0) li.classList.add('selected');
-          els.fontDropdown.appendChild(li);
-          indexMap.push({ globalIndex, originalIndex: font.originalIndex, element: li });
-          globalIndex++;
-        });
-      });
+                if (!loaded) {
+                    state.fontsConfig = { fonts: getDefaultFonts() };
+                    // 仅在确实没有 fonts.json 时提示
+                    showToast('使用内置默认字体');
+                }
 
-      els.fontDropdown.dataset.totalItems = globalIndex;
-      els.fontDropdown.indexMap = indexMap;
-      els.fontLabel.textContent = state.fontsConfig.fonts[0]?.name || '选择字体';
-      applyFont(0);
-    }
+                // 确保始终至少有默认字体
+                if (!state.fontsConfig.fonts || state.fontsConfig.fonts.length === 0) {
+                    state.fontsConfig.fonts = getDefaultFonts();
+                }
 
-    function filterFonts(query) {
-      const items = els.fontDropdown.querySelectorAll('li');
-      const labels = els.fontDropdown.querySelectorAll('.group-label');
-      query = query.toLowerCase();
-      items.forEach(li => li.style.display = li.textContent.toLowerCase().includes(query) ? '' : 'none');
-      labels.forEach(label => {
-        let next = label.nextElementSibling, hasVisible = false;
-        while (next && !next.classList.contains('group-label')) {
-          if (next.tagName === 'LI' && next.style.display !== 'none') { hasVisible = true; break; }
-          next = next.nextElementSibling;
-        }
-        label.style.display = hasVisible ? '' : 'none';
-      });
-      state.focusedIndex = 0;
-      updateFocus();
-    }
+                initFontSelect();
+            }
 
-    function toggleDropdown(force) {
-      state.isDropdownOpen = force !== undefined ? force : !state.isDropdownOpen;
-      els.fontTrigger.classList.toggle('open', state.isDropdownOpen);
-      if (state.isDropdownOpen) {
-        if (els.fontDropdown.parentElement !== document.body) document.body.appendChild(els.fontDropdown);
-        const rect = els.fontTrigger.getBoundingClientRect();
-        els.fontDropdown.style.top = (rect.bottom + 6) + 'px';
-        els.fontDropdown.style.left = rect.left + 'px';
-        els.fontDropdown.classList.add('show');
-        const searchInput = els.fontDropdown.querySelector('.font-search input');
-        if (searchInput) { searchInput.value = ''; filterFonts(''); setTimeout(() => searchInput.focus(), 50); }
-        state.focusedIndex = 0;
-        updateFocus();
-        scrollToFocused();
-      } else {
-        els.fontDropdown.classList.remove('show');
-        const wrap = document.getElementById('fontSelectWrap');
-        if (wrap && els.fontDropdown.parentElement !== wrap) wrap.appendChild(els.fontDropdown);
-      }
-    }
+            // ---------- 初始化字体选择器 ----------
+            function initFontSelect() {
+                const fonts = state.fontsConfig.fonts;
+                els.fontDropdown.innerHTML = '';
 
-    function getVisibleItems() {
-      return Array.from(els.fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
-    }
-    function updateFocus() {
-      els.fontDropdown.querySelectorAll('li').forEach(li => li.classList.remove('focused'));
-      const visible = getVisibleItems();
-      if (visible[state.focusedIndex]) visible[state.focusedIndex].classList.add('focused');
-    }
-    function scrollToFocused() {
-      const focused = els.fontDropdown.querySelector('li.focused');
-      if (focused) focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-    function selectFont(index) {
-      if (index < 0 || index >= state.fontsConfig.fonts.length) return;
-      state.selectedFontIndex = index;
-      els.fontLabel.textContent = state.fontsConfig.fonts[index]?.name || '选择字体';
-      els.fontDropdown.querySelectorAll('li').forEach(li => {
-        li.classList.toggle('selected', parseInt(li.dataset.index) === index);
-      });
-      applyFont(index);
-      toggleDropdown(false);
-      scheduleSave();
-    }
+                // 搜索框
+                const searchWrap = document.createElement('div');
+                searchWrap.className = 'font-search';
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = '搜索字体...';
+                searchInput.addEventListener('input', (e) => filterFonts(e.target.value));
+                searchInput.addEventListener('click', (e) => e.stopPropagation());
+                searchInput.addEventListener('keydown', (e) => {
+                    if (['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
+                        e.stopPropagation();
+                    }
+                });
+                searchWrap.appendChild(searchInput);
+                els.fontDropdown.appendChild(searchWrap);
 
-    async function applyFont(index) {
-      const font = state.fontsConfig.fonts[index];
-      els.fontError.classList.remove('show');
-      els.fontError.textContent = '';
-      if (!font) return;
-      if (font.type === 'custom' && font.src) {
-        if (state.loadedCustomFonts.has(font.src)) {
-          els.editor.style.fontFamily = state.loadedCustomFonts.get(font.src);
-          return;
-        }
-        try {
-          const ff = new FontFace(font.family.replace(/['"]/g, ''), `url(${font.src})`);
-          await ff.load();
-          document.fonts.add(ff);
-          state.loadedCustomFonts.set(font.src, font.family);
-          els.editor.style.fontFamily = font.family;
-          showToast(`字体 "${font.name}" 加载成功`);
-        } catch (e) {
-          els.fontError.textContent = `字体 "${font.name}" 加载失败，已回退到系统字体`;
-          els.fontError.classList.add('show');
-          els.editor.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-        }
-      } else {
-        els.editor.style.fontFamily = font.family;
-      }
-    }
+                // 分组渲染
+                const groups = groupFonts(fonts);
+                const groupOrder = ['系统字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他',
+                    '其他'
+                ];
+                let globalIndex = 0;
+                const indexMap = [];
 
-    function updateEditorStyle() {
-      els.editor.style.fontSize = state.fontSize + 'px';
-      els.editor.style.lineHeight = state.lineHeight;
-    }
-    function updatePaperTexture() {
-      els.paperTexture.className = 'paper-texture ' + state.paperMode;
-    }
-    function updateNoteColor() {
-      els.stickyNote.style.background = colors[state.currentColor];
-      els.stickyNote.dataset.color = state.currentColor;
-    }
+                groupOrder.forEach(cat => {
+                    if (!groups[cat] || groups[cat].length === 0) return;
+                    const label = document.createElement('div');
+                    label.className = 'group-label';
+                    label.textContent = cat + ' (' + groups[cat].length + ')';
+                    els.fontDropdown.appendChild(label);
 
-    function saveToStorage() {
-      const data = {
-        text: els.editor.value,
-        fontIndex: state.selectedFontIndex,
-        color: state.currentColor,
-        paperMode: state.paperMode,
-        fontSize: state.fontSize,
-        lineHeight: state.lineHeight,
-        showDate: state.showDate,
-        settingsOpen: state.settingsOpen,
-        timestamp: Date.now()
-      };
-      try {
-        localStorage.setItem('stickyNote_v6', JSON.stringify(data));
-        showSaveStatus(false);
-      } catch (e) {
-        showSaveStatus(false, true);
-      }
-    }
+                    groups[cat].forEach(font => {
+                        const li = document.createElement('li');
+                        // 显示名称：去掉 "分类·" 前缀
+                        const displayName = font.name.includes('·') ? font.name.split('·').slice(1).join(
+                            '·').trim() : font.name;
+                        li.textContent = displayName;
+                        li.dataset.index = font.originalIndex;
+                        li.dataset.globalIndex = globalIndex;
+                        li.title = font.name; // 悬停显示完整名称
+                        if (font.originalIndex === 0) li.classList.add('selected');
+                        els.fontDropdown.appendChild(li);
+                        indexMap.push({ globalIndex, originalIndex: font.originalIndex, element: li });
+                        globalIndex++;
+                    });
+                });
 
-    function loadFromStorage() {
-      try {
-        const raw = localStorage.getItem('stickyNote_v6');
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data.text) { els.editor.value = data.text; els.count.textContent = data.text.length; }
-        if (data.color && colors[data.color]) {
-          state.currentColor = data.color;
-          document.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === data.color));
-          updateNoteColor();
-        }
-        if (data.paperMode) {
-          state.paperMode = data.paperMode;
-          document.querySelectorAll('.paper-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === data.paperMode));
-          updatePaperTexture();
-        }
-        if (data.fontSize) { state.fontSize = data.fontSize; els.fontSizeSlider.value = data.fontSize; els.fontSizeValue.textContent = data.fontSize; }
-        if (data.lineHeight) { state.lineHeight = data.lineHeight; els.lineHeightSlider.value = data.lineHeight; els.lineHeightValue.textContent = data.lineHeight.toFixed(2); }
-        if (typeof data.showDate === 'boolean') { state.showDate = data.showDate; els.dateToggle.checked = data.showDate; }
-        if (typeof data.settingsOpen === 'boolean') { state.settingsOpen = data.settingsOpen; els.settingsPanel.classList.toggle('show', data.settingsOpen); els.settingsBtn.classList.toggle('active', data.settingsOpen); }
-        if (typeof data.fontIndex === 'number') selectFont(data.fontIndex);
-        updateEditorStyle();
-      } catch (e) { console.warn('加载本地数据失败', e); }
-    }
+                els.fontDropdown.dataset.totalItems = globalIndex;
+                els.fontDropdown._indexMap = indexMap;
 
-    function scheduleSave() {
-      state.isSaving = true;
-      showSaveStatus(true);
-      clearTimeout(state.saveTimer);
-      state.saveTimer = setTimeout(() => { saveToStorage(); state.isSaving = false; }, 800);
-    }
-    function showSaveStatus(isLoading, isError) {
-      els.saveDot.classList.add('show');
-      els.saveDot.classList.toggle('saving', isLoading);
-      els.saveDot.style.background = isError ? '#e74c3c' : (isLoading ? '#f39c12' : '#27ae60');
-      if (!isLoading && !isError) setTimeout(() => els.saveDot.classList.remove('show'), 1500);
-    }
+                // 确保选中的字体在 fonts 数组中有效
+                if (state.selectedFontIndex >= fonts.length || state.selectedFontIndex < 0) {
+                    state.selectedFontIndex = 0;
+                }
 
-    async function exportImage() {
-      const text = els.editor.value;
-      if (!text.trim()) { showToast('请输入内容'); return; }
-      els.exportBtn.disabled = true;
-      showToast('正在生成...');
+                els.fontLabel.textContent = fonts[state.selectedFontIndex]?.name || '系统默认';
+                applyFont(state.selectedFontIndex);
+            }
 
-      const font = state.fontsConfig.fonts[state.selectedFontIndex];
-      let fontFamily = font?.family || 'system-ui, -apple-system, sans-serif';
-      if (font?.type === 'custom' && els.fontError.classList.contains('show')) {
-        fontFamily = 'system-ui, -apple-system, sans-serif';
-      }
+            // ---------- 搜索过滤 ----------
+            function filterFonts(query) {
+                const items = els.fontDropdown.querySelectorAll('li');
+                const labels = els.fontDropdown.querySelectorAll('.group-label');
+                const q = query.toLowerCase();
+                items.forEach(li => {
+                    li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none';
+                });
+                labels.forEach(label => {
+                    let next = label.nextElementSibling;
+                    let hasVisible = false;
+                    while (next && !next.classList.contains('group-label')) {
+                        if (next.tagName === 'LI' && next.style.display !== 'none') {
+                            hasVisible = true;
+                            break;
+                        }
+                        next = next.nextElementSibling;
+                    }
+                    label.style.display = hasVisible ? '' : 'none';
+                });
+                state.focusedIndex = 0;
+                updateFocus();
+            }
 
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const dpr = 3;
-      const padding = 40;
-      const contentWidth = 440;
-      const fontSize = state.fontSize + 2;
-      const lineHeightPx = Math.round(fontSize * state.lineHeight);
-      const bottomBarHeight = 44;
+            // ---------- 下拉菜单开关 ----------
+            function toggleDropdown(force) {
+                state.isDropdownOpen = force !== undefined ? force : !state.isDropdownOpen;
+                els.fontTrigger.classList.toggle('open', state.isDropdownOpen);
 
-      if (font?.type === 'custom' && font.src && !els.fontError.classList.contains('show')) {
-        try { await document.fonts.load(`${fontSize}px ${fontFamily}`); } catch (e) {}
-      }
+                if (state.isDropdownOpen) {
+                    // 确保下拉菜单在 body 中（避免被 overflow 裁剪）
+                    if (els.fontDropdown.parentElement !== document.body) {
+                        document.body.appendChild(els.fontDropdown);
+                    }
+                    const rect = els.fontTrigger.getBoundingClientRect();
+                    els.fontDropdown.style.top = (rect.bottom + 6) + 'px';
+                    els.fontDropdown.style.left = Math.max(8, rect.left) + 'px';
+                    els.fontDropdown.classList.add('show');
 
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      const lines = wrapText(ctx, text, contentWidth);
-      const textHeight = lines.length * lineHeightPx;
-      const canvasWidth = contentWidth + padding * 2;
-      const canvasHeight = Math.max(260, textHeight + padding * 2 + bottomBarHeight);
+                    // 重置搜索
+                    const searchInput = els.fontDropdown.querySelector('.font-search input');
+                    if (searchInput) {
+                        searchInput.value = '';
+                        filterFonts('');
+                        setTimeout(() => searchInput.focus(), 50);
+                    }
+                    state.focusedIndex = 0;
+                    updateFocus();
+                    scrollToFocused();
+                } else {
+                    els.fontDropdown.classList.remove('show');
+                    // 把下拉菜单移回原容器
+                    const wrap = els.fontSelectWrap;
+                    if (wrap && els.fontDropdown.parentElement !== wrap) {
+                        try { wrap.appendChild(els.fontDropdown); } catch (e) {}
+                    }
+                }
+            }
 
-      canvas.width = canvasWidth * dpr;
-      canvas.height = canvasHeight * dpr;
-      ctx.scale(dpr, dpr);
+            function getVisibleItems() {
+                return Array.from(els.fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+            }
 
-      ctx.fillStyle = colors[state.currentColor];
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            function updateFocus() {
+                els.fontDropdown.querySelectorAll('li').forEach(li => li.classList.remove('focused'));
+                const visible = getVisibleItems();
+                if (visible.length > 0 && state.focusedIndex < visible.length) {
+                    visible[state.focusedIndex].classList.add('focused');
+                } else if (visible.length > 0) {
+                    state.focusedIndex = 0;
+                    visible[0].classList.add('focused');
+                }
+            }
 
-      if (state.paperMode === 'lines') {
-        ctx.strokeStyle = 'rgba(0,0,0,0.025)';
-        ctx.lineWidth = 1;
-        for (let y = padding + 16; y < canvasHeight - bottomBarHeight; y += 32) {
-          ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(canvasWidth - padding, y); ctx.stroke();
-        }
-      } else if (state.paperMode === 'grid') {
-        ctx.strokeStyle = 'rgba(0,0,0,0.02)';
-        ctx.lineWidth = 1;
-        for (let y = padding + 16; y < canvasHeight - bottomBarHeight; y += 32) {
-          ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(canvasWidth - padding, y); ctx.stroke();
-        }
-        for (let x = padding; x < canvasWidth - padding; x += 32) {
-          ctx.beginPath(); ctx.moveTo(x, padding + 16); ctx.lineTo(x, canvasHeight - bottomBarHeight); ctx.stroke();
-        }
-      }
+            function scrollToFocused() {
+                const focused = els.fontDropdown.querySelector('li.focused');
+                if (focused) focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
 
-      ctx.strokeStyle = 'rgba(0,0,0,0.03)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(8, 8, canvasWidth - 16, canvasHeight - 16);
+            // ---------- 选择字体 ----------
+            function selectFont(index, skipSave) {
+                const fonts = state.fontsConfig.fonts;
+                if (!fonts || fonts.length === 0) return;
+                if (index < 0 || index >= fonts.length) {
+                    index = 0;
+                }
 
-      ctx.fillStyle = '#3a3a3a';
-      ctx.font = `${fontSize}px ${fontFamily}`;
-      ctx.textBaseline = 'top';
-      lines.forEach((line, i) => {
-        ctx.fillText(line, padding, padding + i * lineHeightPx);
-      });
+                state.selectedFontIndex = index;
+                els.fontLabel.textContent = fonts[index]?.name || '系统默认';
 
-      const barY = canvasHeight - bottomBarHeight + 4;
-      ctx.font = '500 10px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = '#bbb';
+                els.fontDropdown.querySelectorAll('li').forEach(li => {
+                    li.classList.toggle('selected', parseInt(li.dataset.index) === index);
+                });
 
-      if (state.showDate) {
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
-        ctx.textAlign = 'left';
-        ctx.fillText(dateStr, padding, barY);
-      }
+                applyFont(index);
+                toggleDropdown(false);
 
-      ctx.textAlign = 'center';
-      ctx.fillText('便签', canvasWidth / 2, barY);
+                if (!skipSave) {
+                    scheduleSave();
+                }
+            }
 
-      const link = document.createElement('a');
-      link.download = `便签_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
-      link.click();
+            // ---------- 应用字体到编辑器 ----------
+            function applyFont(index) {
+                const font = state.fontsConfig.fonts[index];
+                els.fontError.classList.remove('show');
+                els.fontError.textContent = '';
 
-      showToast('图片已导出');
-      els.exportBtn.disabled = false;
-    }
+                if (!font) {
+                    els.editor.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+                    return;
+                }
 
-    function wrapText(ctx, text, maxWidth) {
-      const lines = [];
-      const paragraphs = text.split('\n');
-      paragraphs.forEach(para => {
-        if (!para) { lines.push(''); return; }
-        let line = '';
-        for (let i = 0; i < para.length; i++) {
-          const testLine = line + para[i];
-          if (ctx.measureText(testLine).width > maxWidth && line.length > 0) {
-            lines.push(line);
-            line = para[i];
-          } else {
-            line = testLine;
-          }
-        }
-        lines.push(line);
-      });
-      return lines;
-    }
+                if (font.type === 'custom' && font.src) {
+                    // 已加载过的自定义字体
+                    if (state.loadedCustomFonts.has(font.src)) {
+                        els.editor.style.fontFamily = state.loadedCustomFonts.get(font.src);
+                        return;
+                    }
+                    // 尝试加载
+                    const family = font.family.replace(/['"]/g, '');
+                    const ff = new FontFace(family, 'url(' + font.src + ')');
+                    ff.load().then(() => {
+                        document.fonts.add(ff);
+                        state.loadedCustomFonts.set(font.src, font.family);
+                        els.editor.style.fontFamily = font.family;
+                        showToast('字体 "' + font.name + '" 加载成功');
+                    }).catch(() => {
+                        els.fontError.textContent = '字体 "' + font.name + '" 加载失败，已回退到系统字体';
+                        els.fontError.classList.add('show');
+                        els.editor.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+                    });
+                } else {
+                    els.editor.style.fontFamily = font.family;
+                }
+            }
 
-    function showToast(msg) {
-      els.toastText.textContent = msg;
-      els.toast.classList.add('show');
-      setTimeout(() => els.toast.classList.remove('show'), 2200);
-    }
+            // ---------- 更新编辑器样式 ----------
+            function updateEditorStyle() {
+                els.editor.style.fontSize = state.fontSize + 'px';
+                els.editor.style.lineHeight = state.lineHeight;
+            }
 
-    function setupEvents() {
-      els.fontTrigger.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
-      els.fontDropdown.addEventListener('click', (e) => {
-        const li = e.target.closest('li[data-index]');
-        if (li) selectFont(parseInt(li.dataset.index));
-      });
-      els.fontTrigger.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDropdown(); }
-        else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          if (!state.isDropdownOpen) toggleDropdown(true);
-          const visible = getVisibleItems();
-          state.focusedIndex = Math.min(state.focusedIndex + 1, visible.length - 1);
-          updateFocus(); scrollToFocused();
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          if (!state.isDropdownOpen) toggleDropdown(true);
-          state.focusedIndex = Math.max(state.focusedIndex - 1, 0);
-          updateFocus(); scrollToFocused();
-        } else if (e.key === 'Escape') { toggleDropdown(false); }
-      });
-      els.fontDropdown.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const visible = getVisibleItems();
-          if (visible[state.focusedIndex]) selectFont(parseInt(visible[state.focusedIndex].dataset.index));
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          const visible = getVisibleItems();
-          state.focusedIndex = Math.min(state.focusedIndex + 1, visible.length - 1);
-          updateFocus(); scrollToFocused();
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          state.focusedIndex = Math.max(state.focusedIndex - 1, 0);
-          updateFocus(); scrollToFocused();
-        } else if (e.key === 'Escape') { toggleDropdown(false); els.fontTrigger.focus(); }
-      });
-      document.addEventListener('click', (e) => {
-        if (!document.getElementById('fontSelectWrap').contains(e.target)) toggleDropdown(false);
-      });
+            function updatePaperTexture() {
+                els.paperTexture.className = 'paper-texture ' + state.paperMode;
+            }
 
-      els.editor.addEventListener('input', () => { els.count.textContent = els.editor.value.length; scheduleSave(); });
-      els.editor.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); exportImage(); }
-      });
+            function updateNoteColor() {
+                els.stickyNote.style.background = colors[state.currentColor];
+                els.stickyNote.dataset.color = state.currentColor;
+            }
 
-      document.querySelectorAll('.color-dot').forEach(dot => {
-        dot.addEventListener('click', () => {
-          document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-          dot.classList.add('active');
-          state.currentColor = dot.dataset.color;
-          updateNoteColor();
-          scheduleSave();
-        });
-      });
+            // ---------- 本地存储 ----------
+            function saveToStorage() {
+                const data = {
+                    text: els.editor.value,
+                    fontIndex: state.selectedFontIndex,
+                    color: state.currentColor,
+                    paperMode: state.paperMode,
+                    fontSize: state.fontSize,
+                    lineHeight: state.lineHeight,
+                    showDate: state.showDate,
+                    settingsOpen: state.settingsOpen,
+                    timestamp: Date.now(),
+                };
+                try {
+                    localStorage.setItem('stickyNote_v6', JSON.stringify(data));
+                    showSaveStatus(false);
+                } catch (e) {
+                    showSaveStatus(false, true);
+                }
+            }
 
-      document.querySelectorAll('.paper-mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.paper-mode-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          state.paperMode = btn.dataset.mode;
-          updatePaperTexture();
-          scheduleSave();
-        });
-      });
+            function loadFromStorage() {
+                try {
+                    const raw = localStorage.getItem('stickyNote_v6');
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
 
-      els.settingsBtn.addEventListener('click', () => {
-        state.settingsOpen = !state.settingsOpen;
-        els.settingsPanel.classList.toggle('show', state.settingsOpen);
-        els.settingsBtn.classList.toggle('active', state.settingsOpen);
-        scheduleSave();
-      });
+                    if (data.text) {
+                        els.editor.value = data.text;
+                        els.count.textContent = data.text.length;
+                    }
+                    if (data.color && colors[data.color]) {
+                        state.currentColor = data.color;
+                        document.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d
+                            .dataset.color === data.color));
+                        updateNoteColor();
+                    }
+                    if (data.paperMode) {
+                        state.paperMode = data.paperMode;
+                        document.querySelectorAll('.paper-mode-btn').forEach(b => b.classList.toggle('active',
+                            b.dataset.mode === data.paperMode));
+                        updatePaperTexture();
+                    }
+                    if (data.fontSize) {
+                        state.fontSize = data.fontSize;
+                        els.fontSizeSlider.value = data.fontSize;
+                        els.fontSizeValue.textContent = data.fontSize;
+                    }
+                    if (data.lineHeight) {
+                        state.lineHeight = data.lineHeight;
+                        els.lineHeightSlider.value = data.lineHeight;
+                        els.lineHeightValue.textContent = data.lineHeight.toFixed(2);
+                    }
+                    if (typeof data.showDate === 'boolean') {
+                        state.showDate = data.showDate;
+                        els.dateToggle.checked = data.showDate;
+                    }
+                    if (typeof data.settingsOpen === 'boolean') {
+                        state.settingsOpen = data.settingsOpen;
+                        els.settingsPanel.classList.toggle('show', data.settingsOpen);
+                        els.settingsBtn.classList.toggle('active', data.settingsOpen);
+                    }
 
-      els.fontSizeSlider.addEventListener('input', (e) => {
-        state.fontSize = parseInt(e.target.value);
-        els.fontSizeValue.textContent = state.fontSize;
-        updateEditorStyle();
-        scheduleSave();
-      });
-      els.lineHeightSlider.addEventListener('input', (e) => {
-        state.lineHeight = parseFloat(e.target.value);
-        els.lineHeightValue.textContent = state.lineHeight.toFixed(2);
-        updateEditorStyle();
-        scheduleSave();
-      });
+                    // 恢复字体选择（需验证索引有效性）
+                    if (typeof data.fontIndex === 'number' &&
+                        data.fontIndex >= 0 &&
+                        data.fontIndex < state.fontsConfig.fonts.length) {
+                        selectFont(data.fontIndex, true); // skipSave = true，避免初始加载触发保存
+                    }
 
-      els.dateToggle.addEventListener('change', () => { state.showDate = els.dateToggle.checked; scheduleSave(); });
-      els.exportBtn.addEventListener('click', exportImage);
-      window.addEventListener('beforeunload', () => { if (state.isSaving) saveToStorage(); });
-    }
+                    updateEditorStyle();
+                } catch (e) {
+                    console.warn('加载本地数据失败', e);
+                }
+            }
 
-    init();
-  </script>
+            function scheduleSave() {
+                // 初始加载阶段不触发保存
+                if (state.isInitialLoad) return;
+
+                state.isSaving = true;
+                showSaveStatus(true);
+                clearTimeout(state.saveTimer);
+                state.saveTimer = setTimeout(() => {
+                    saveToStorage();
+                    state.isSaving = false;
+                }, 800);
+            }
+
+            function showSaveStatus(isLoading, isError) {
+                els.saveDot.classList.add('show');
+                els.saveDot.classList.toggle('saving', isLoading);
+                els.saveDot.style.background = isError ? '#e74c3c' : (isLoading ? '#f39c12' : '#27ae60');
+                if (!isLoading && !isError) {
+                    setTimeout(() => els.saveDot.classList.remove('show'), 1500);
+                }
+            }
+
+            // ---------- 导出图片 ----------
+            async function exportImage() {
+                const text = els.editor.value;
+                if (!text.trim()) {
+                    showToast('请输入内容');
+                    return;
+                }
+                els.exportBtn.disabled = true;
+                showToast('正在生成...');
+
+                const font = state.fontsConfig.fonts[state.selectedFontIndex];
+                let fontFamily = font?.family || 'system-ui, -apple-system, sans-serif';
+                if (font?.type === 'custom' && els.fontError.classList.contains('show')) {
+                    fontFamily = 'system-ui, -apple-system, sans-serif';
+                }
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const dpr = 3;
+                const padding = 40;
+                const contentWidth = 440;
+                const fontSize = state.fontSize + 2;
+                const lineHeightPx = Math.round(fontSize * state.lineHeight);
+                const bottomBarHeight = 44;
+
+                if (font?.type === 'custom' && font.src && !els.fontError.classList.contains('show')) {
+                    try { await document.fonts.load(fontSize + 'px ' + fontFamily); } catch (e) {}
+                }
+
+                ctx.font = fontSize + 'px ' + fontFamily;
+                const lines = wrapText(ctx, text, contentWidth);
+                const textHeight = lines.length * lineHeightPx;
+                const canvasWidth = contentWidth + padding * 2;
+                const canvasHeight = Math.max(260, textHeight + padding * 2 + bottomBarHeight);
+
+                canvas.width = canvasWidth * dpr;
+                canvas.height = canvasHeight * dpr;
+                ctx.scale(dpr, dpr);
+
+                ctx.fillStyle = colors[state.currentColor];
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                if (state.paperMode === 'lines') {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.025)';
+                    ctx.lineWidth = 1;
+                    for (let y = padding + 16; y < canvasHeight - bottomBarHeight; y += 32) {
+                        ctx.beginPath();
+                        ctx.moveTo(padding, y);
+                        ctx.lineTo(canvasWidth - padding, y);
+                        ctx.stroke();
+                    }
+                } else if (state.paperMode === 'grid') {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.02)';
+                    ctx.lineWidth = 1;
+                    for (let y = padding + 16; y < canvasHeight - bottomBarHeight; y += 32) {
+                        ctx.beginPath();
+                        ctx.moveTo(padding, y);
+                        ctx.lineTo(canvasWidth - padding, y);
+                        ctx.stroke();
+                    }
+                    for (let x = padding; x < canvasWidth - padding; x += 32) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, padding + 16);
+                        ctx.lineTo(x, canvasHeight - bottomBarHeight);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.strokeStyle = 'rgba(0,0,0,0.03)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(8, 8, canvasWidth - 16, canvasHeight - 16);
+
+                ctx.fillStyle = '#3a3a3a';
+                ctx.font = fontSize + 'px ' + fontFamily;
+                ctx.textBaseline = 'top';
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, padding, padding + i * lineHeightPx);
+                });
+
+                const barY = canvasHeight - bottomBarHeight + 4;
+                ctx.font = '500 10px system-ui, -apple-system, sans-serif';
+                ctx.fillStyle = '#bbb';
+
+                if (state.showDate) {
+                    const now = new Date();
+                    const dateStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(dateStr, padding, barY);
+                }
+
+                ctx.textAlign = 'center';
+                ctx.fillText('便签', canvasWidth / 2, barY);
+
+                const link = document.createElement('a');
+                link.download = '便签_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '_' + Date.now() +
+                    '.png';
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+
+                showToast('图片已导出');
+                els.exportBtn.disabled = false;
+            }
+
+            function wrapText(ctx, text, maxWidth) {
+                const lines = [];
+                const paragraphs = text.split('\n');
+                paragraphs.forEach(para => {
+                    if (!para) {
+                        lines.push('');
+                        return;
+                    }
+                    let line = '';
+                    for (let i = 0; i < para.length; i++) {
+                        const testLine = line + para[i];
+                        if (ctx.measureText(testLine).width > maxWidth && line.length > 0) {
+                            lines.push(line);
+                            line = para[i];
+                        } else {
+                            line = testLine;
+                        }
+                    }
+                    lines.push(line);
+                });
+                return lines;
+            }
+
+            // ---------- 事件绑定 ----------
+            function setupEvents() {
+                // 字体触发器
+                els.fontTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleDropdown();
+                });
+
+                // 下拉菜单点击
+                els.fontDropdown.addEventListener('click', (e) => {
+                    const li = e.target.closest('li[data-index]');
+                    if (li) {
+                        selectFont(parseInt(li.dataset.index));
+                    }
+                });
+
+                // 键盘导航（触发器）
+                els.fontTrigger.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleDropdown();
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (!state.isDropdownOpen) toggleDropdown(true);
+                        const visible = getVisibleItems();
+                        if (visible.length > 0) {
+                            state.focusedIndex = Math.min(state.focusedIndex + 1, visible.length - 1);
+                            updateFocus();
+                            scrollToFocused();
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!state.isDropdownOpen) toggleDropdown(true);
+                        state.focusedIndex = Math.max(state.focusedIndex - 1, 0);
+                        updateFocus();
+                        scrollToFocused();
+                    } else if (e.key === 'Escape') {
+                        toggleDropdown(false);
+                    }
+                });
+
+                // 键盘导航（下拉菜单内）
+                els.fontDropdown.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const visible = getVisibleItems();
+                        if (visible.length > 0 && visible[state.focusedIndex]) {
+                            selectFont(parseInt(visible[state.focusedIndex].dataset.index));
+                        }
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const visible = getVisibleItems();
+                        if (visible.length > 0) {
+                            state.focusedIndex = Math.min(state.focusedIndex + 1, visible.length - 1);
+                            updateFocus();
+                            scrollToFocused();
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        state.focusedIndex = Math.max(state.focusedIndex - 1, 0);
+                        updateFocus();
+                        scrollToFocused();
+                    } else if (e.key === 'Escape') {
+                        toggleDropdown(false);
+                        els.fontTrigger.focus();
+                    }
+                });
+
+                // 点击外部关闭
+                document.addEventListener('click', (e) => {
+                    if (state.isDropdownOpen && !els.fontSelectWrap.contains(e.target) && !els.fontDropdown
+                        .contains(e.target)) {
+                        toggleDropdown(false);
+                    }
+                });
+
+                // 窗口大小改变时重新定位下拉菜单
+                window.addEventListener('resize', () => {
+                    if (state.isDropdownOpen) {
+                        const rect = els.fontTrigger.getBoundingClientRect();
+                        els.fontDropdown.style.top = (rect.bottom + 6) + 'px';
+                        els.fontDropdown.style.left = Math.max(8, rect.left) + 'px';
+                    }
+                });
+
+                // 编辑器输入
+                els.editor.addEventListener('input', () => {
+                    els.count.textContent = els.editor.value.length;
+                    scheduleSave();
+                });
+                els.editor.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'Enter') {
+                        e.preventDefault();
+                        exportImage();
+                    }
+                });
+
+                // 颜色选择
+                document.querySelectorAll('.color-dot').forEach(dot => {
+                    dot.addEventListener('click', () => {
+                        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove(
+                            'active'));
+                        dot.classList.add('active');
+                        state.currentColor = dot.dataset.color;
+                        updateNoteColor();
+                        scheduleSave();
+                    });
+                });
+
+                // 纸张模式
+                document.querySelectorAll('.paper-mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.paper-mode-btn').forEach(b => b.classList.remove(
+                            'active'));
+                        btn.classList.add('active');
+                        state.paperMode = btn.dataset.mode;
+                        updatePaperTexture();
+                        scheduleSave();
+                    });
+                });
+
+                // 设置面板
+                els.settingsBtn.addEventListener('click', () => {
+                    state.settingsOpen = !state.settingsOpen;
+                    els.settingsPanel.classList.toggle('show', state.settingsOpen);
+                    els.settingsBtn.classList.toggle('active', state.settingsOpen);
+                    scheduleSave();
+                });
+
+                // 字号
+                els.fontSizeSlider.addEventListener('input', (e) => {
+                    state.fontSize = parseInt(e.target.value);
+                    els.fontSizeValue.textContent = state.fontSize;
+                    updateEditorStyle();
+                    scheduleSave();
+                });
+
+                // 行距
+                els.lineHeightSlider.addEventListener('input', (e) => {
+                    state.lineHeight = parseFloat(e.target.value);
+                    els.lineHeightValue.textContent = state.lineHeight.toFixed(2);
+                    updateEditorStyle();
+                    scheduleSave();
+                });
+
+                // 日期开关
+                els.dateToggle.addEventListener('change', () => {
+                    state.showDate = els.dateToggle.checked;
+                    scheduleSave();
+                });
+
+                // 导出按钮
+                els.exportBtn.addEventListener('click', exportImage);
+
+                // 页面卸载前保存
+                window.addEventListener('beforeunload', () => {
+                    if (state.isSaving) saveToStorage();
+                });
+            }
+
+            // ---------- 初始化 ----------
+            async function init() {
+                await loadFontsConfig();
+                loadFromStorage();
+                setupEvents();
+                updateEditorStyle();
+                updatePaperTexture();
+                updateNoteColor();
+
+                // 初始加载完成，后续操作可以触发保存
+                state.isInitialLoad = false;
+
+                // 如果加载后发现选中的字体索引无效，回退到系统默认
+                if (state.selectedFontIndex >= state.fontsConfig.fonts.length || state.selectedFontIndex < 0) {
+                    selectFont(0, true);
+                }
+            }
+
+            init();
+        })();
+    </script>
 </body>
 </html>
