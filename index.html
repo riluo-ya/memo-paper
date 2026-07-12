@@ -244,7 +244,7 @@
 <div class="save-dot" id="saveDot"></div>
 <div class="header">
   <h1>便签</h1>
-  <p>2.0.2</p>
+  <p>2.0.3</p>
 </div>
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
@@ -344,8 +344,8 @@
 
     // ---------- 全局状态 ----------
     const state = {
-      fonts: [...BUILTIN_FONTS],        // 当前生效的字体列表
-      selectedFontIndex: 0,             // 始终默认选中“系统默认”
+      fonts: [...BUILTIN_FONTS],
+      selectedFontIndex: 0,
       focusedIndex: 0,
       isDropdownOpen: false,
       loadedCustomFonts: new Map(),
@@ -421,7 +421,7 @@
         } else if (/[\u4e00-\u9fa5]/.test(name)) {
           category = '中文字体';
         } else {
-          category = '其他字体';
+          category = '其他';
         }
         if (!groups[category]) groups[category] = [];
         groups[category].push({ ...font, originalIndex: idx });
@@ -452,8 +452,18 @@
       const groupOrder = ['系统字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
       let globalIndex = 0;
 
+      // 先按 groupOrder 渲染，再把未匹配的类别追加到末尾
+      const categories = [];
       groupOrder.forEach(cat => {
-        if (!groups[cat] || groups[cat].length === 0) return;
+        if (groups[cat] && groups[cat].length > 0) categories.push(cat);
+      });
+      Object.keys(groups).forEach(cat => {
+        if (!categories.includes(cat) && groups[cat] && groups[cat].length > 0) {
+          categories.push(cat);
+        }
+      });
+
+      categories.forEach(cat => {
         const label = document.createElement('div');
         label.className = 'group-label';
         label.textContent = cat + ' (' + groups[cat].length + ')';
@@ -597,7 +607,6 @@
     const saveToStorage = () => {
       const data = {
         text: els.editor.value,
-        // fontIndex 不再保存，从而实现“每次打开都是系统默认”
         color: state.currentColor,
         paperMode: state.paperMode,
         fontSize: state.fontSize,
@@ -632,7 +641,6 @@
         if (data.lineHeight) { state.lineHeight = data.lineHeight; els.lineHeightSlider.value = data.lineHeight; els.lineHeightValue.textContent = data.lineHeight.toFixed(2); }
         if (typeof data.showDate === 'boolean') { state.showDate = data.showDate; els.dateToggle.checked = data.showDate; }
         if (typeof data.settingsOpen === 'boolean') { state.settingsOpen = data.settingsOpen; els.settingsPanel.classList.toggle('show', data.settingsOpen); els.settingsBtn.classList.toggle('active', data.settingsOpen); }
-        // 故意忽略 data.fontIndex，强制维持系统默认
         updateEditorStyle();
       } catch(e) { console.warn('加载本地数据失败', e); }
     };
@@ -745,8 +753,9 @@
         const res = await fetch('fonts.json');
         if (res.ok) {
           const data = await res.json();
-          if (data && Array.isArray(data.fonts) && data.fonts.length > 0) {
-            state.fonts = data.fonts;
+          if (data && Array.isArray(data.fonts)) {
+            // 将外部字体追加到内置字体后面，确保系统默认始终排在索引 0
+            state.fonts = [...BUILTIN_FONTS, ...data.fonts];
           }
         }
       } catch (e) { /* 忽略，使用内置字体 */ }
