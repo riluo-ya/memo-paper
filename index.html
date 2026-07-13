@@ -244,7 +244,7 @@
 <div class="save-dot" id="saveDot"></div>
 <div class="header">
   <h1>便签</h1>
-  <p>2.0.3</p>
+  <p>2.0.4</p>
 </div>
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
@@ -335,11 +335,11 @@
   (() => {
     // ---------- 铁打的内置字体（永远可以回退） ----------
     const BUILTIN_FONTS = [
-      { name: '系统默认', family: 'system-ui, -apple-system, sans-serif', type: 'system' },
-      { name: '宋体', family: 'SimSun, serif', type: 'fallback' },
-      { name: '黑体', family: 'SimHei, sans-serif', type: 'fallback' },
-      { name: '楷体', family: 'KaiTi, serif', type: 'fallback' },
-      { name: '仿宋', family: 'FangSong, serif', type: 'fallback' }
+      { name: '系统默认', family: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', type: 'system' },
+      { name: '宋体', family: 'SimSun, "Songti SC", serif', type: 'fallback' },
+      { name: '黑体', family: 'SimHei, "Heiti SC", sans-serif', type: 'fallback' },
+      { name: '楷体', family: 'KaiTi, "Kaiti SC", serif', type: 'fallback' },
+      { name: '仿宋', family: 'FangSong, "Fangsong SC", serif', type: 'fallback' }
     ];
 
     // ---------- 全局状态 ----------
@@ -408,7 +408,7 @@
       }
     };
 
-    // 分组
+    // 分组：根据 name 中的 · 分组，没有 · 的按 type 或语言分
     const groupFonts = (fonts) => {
       const groups = {};
       fonts.forEach((font, idx) => {
@@ -420,8 +420,6 @@
           category = name.split('·')[0].trim();
         } else if (/[\u4e00-\u9fa5]/.test(name)) {
           category = '中文字体';
-        } else {
-          category = '其他';
         }
         if (!groups[category]) groups[category] = [];
         groups[category].push({ ...font, originalIndex: idx });
@@ -429,7 +427,7 @@
       return groups;
     };
 
-    // ---------- 核心：构建下拉菜单（保证一定有内容）----------
+    // ---------- 核心：构建下拉菜单 ----------
     const buildDropdown = () => {
       ensureValidFonts();
       els.fontDropdown.innerHTML = '';
@@ -452,7 +450,7 @@
       const groupOrder = ['系统字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
       let globalIndex = 0;
 
-      // 先按 groupOrder 渲染，再把未匹配的类别追加到末尾
+      // 先按白名单顺序，再把剩余的追加到末尾
       const categories = [];
       groupOrder.forEach(cat => {
         if (groups[cat] && groups[cat].length > 0) categories.push(cat);
@@ -475,14 +473,13 @@
           li.textContent = displayName;
           li.dataset.index = font.originalIndex;
           li.dataset.globalIndex = globalIndex;
-          li.title = font.name;
+          li.title = font.name + (font.type === 'custom' ? ' (自定义)' : '');
           if (font.originalIndex === state.selectedFontIndex) li.classList.add('selected');
           els.fontDropdown.appendChild(li);
           globalIndex++;
         });
       });
 
-      // 更新触发器显示
       els.fontLabel.textContent = state.fonts[state.selectedFontIndex]?.name || '系统默认';
     };
 
@@ -563,7 +560,7 @@
     };
 
     // 应用字体到编辑器
-    const applyFont = (index) => {
+    const applyFont = async (index) => {
       const font = state.fonts[index];
       els.fontError.classList.remove('show');
       els.fontError.textContent = '';
@@ -572,21 +569,29 @@
         return;
       }
       if (font.type === 'custom' && font.src) {
+        // 如果已经加载过，直接应用
         if (state.loadedCustomFonts.has(font.src)) {
           els.editor.style.fontFamily = state.loadedCustomFonts.get(font.src);
           return;
         }
-        const family = font.family.replace(/['"]/g, '');
-        const ff = new FontFace(family, 'url(' + font.src + ')');
-        ff.load().then(() => {
+        const family = font.family.replace(/['"]/g, '').trim();
+        try {
+          const ff = new FontFace(family, 'url(' + font.src + ')');
+          await ff.load();
           document.fonts.add(ff);
           state.loadedCustomFonts.set(font.src, font.family);
           els.editor.style.fontFamily = font.family;
-        }).catch(() => {
+          // 强制重绘确保字体生效
+          els.editor.style.fontFamily = 'inherit';
+          requestAnimationFrame(() => {
+            els.editor.style.fontFamily = font.family;
+          });
+        } catch (err) {
+          console.warn('字体加载失败:', font.name, err);
           els.fontError.textContent = '字体 "' + font.name + '" 加载失败，已回退到系统字体';
           els.fontError.classList.add('show');
           els.editor.style.fontFamily = 'system-ui, -apple-system, sans-serif';
-        });
+        }
       } else {
         els.editor.style.fontFamily = font.family;
       }
@@ -603,7 +608,7 @@
       els.stickyNote.style.background = colors[state.currentColor];
     };
 
-    // ---------- 存储（字体选择不再保存，永远以“系统默认”打开）----------
+    // ---------- 存储 ----------
     const saveToStorage = () => {
       const data = {
         text: els.editor.value,
@@ -676,8 +681,23 @@
       const lineHeightPx = Math.round(fontSize * state.lineHeight);
       const bottomBarHeight = 44;
 
-      if (font?.type === 'custom' && font.src && !els.fontError.classList.contains('show')) {
-        try { await document.fonts.load(fontSize + 'px ' + fontFamily); } catch(e) {}
+      // 如果是自定义字体，等待加载完成
+      if (font?.type === 'custom' && font.src) {
+        if (!state.loadedCustomFonts.has(font.src)) {
+          // 尝试加载
+          try {
+            const ff = new FontFace(font.family.replace(/['"]/g, '').trim(), 'url(' + font.src + ')');
+            await ff.load();
+            document.fonts.add(ff);
+            state.loadedCustomFonts.set(font.src, font.family);
+          } catch (e) {
+            console.warn('导出时字体加载失败，使用系统字体', e);
+            fontFamily = 'system-ui, -apple-system, sans-serif';
+          }
+        }
+        try {
+          await document.fonts.load(fontSize + 'px ' + fontFamily);
+        } catch (e) {}
       }
 
       ctx.font = fontSize + 'px ' + fontFamily;
@@ -747,19 +767,23 @@
       return lines;
     };
 
-    // ---------- 加载 fonts.json（异步，成功后重新构建菜单但保持系统默认）----------
+    // ---------- 加载 fonts.json ----------
     const loadFontsConfig = async () => {
       try {
         const res = await fetch('fonts.json');
         if (res.ok) {
           const data = await res.json();
-          if (data && Array.isArray(data.fonts)) {
-            // 将外部字体追加到内置字体后面，确保系统默认始终排在索引 0
-            state.fonts = [...BUILTIN_FONTS, ...data.fonts];
+          if (data && Array.isArray(data.fonts) && data.fonts.length > 0) {
+            // 去重合并：如果 fonts.json 里已有内置字体名，不再重复追加
+            const jsonNames = new Set(data.fonts.map(f => f.name));
+            const missingBuiltins = BUILTIN_FONTS.filter(bf => !jsonNames.has(bf.name));
+            state.fonts = [...missingBuiltins, ...data.fonts];
           }
         }
-      } catch (e) { /* 忽略，使用内置字体 */ }
-      // 保证选中的字体是系统默认（索引0）
+      } catch (e) {
+        console.warn('fonts.json 加载失败，使用内置字体', e);
+      }
+      // 始终默认选中系统默认
       state.selectedFontIndex = 0;
       buildDropdown();
       applyFont(0);
@@ -862,17 +886,17 @@
 
     // 启动流程
     const init = async () => {
-      // 1. 先用内置字体构建菜单并显示，确保界面立即可用
+      // 1. 先用内置字体构建菜单并显示
       buildDropdown();
       applyFont(0);
-      // 2. 恢复其他本地设置（文字、颜色等），但不改变字体选择
+      // 2. 恢复其他本地设置
       loadFromStorage();
       // 3. 绑定交互事件
       setupEvents();
       updateEditorStyle();
       updatePaperTexture();
       updateNoteColor();
-      // 4. 异步尝试加载 fonts.json 并更新菜单（仍保持系统默认选中）
+      // 4. 异步加载 fonts.json
       await loadFontsConfig();
       state.isInitialLoad = false;
     };
