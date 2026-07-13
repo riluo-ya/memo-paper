@@ -1,95 +1,88 @@
-# memo-paper
+#  memo-paper
 
-一个精致的网页便签工具，支持多种字体实时切换、日期水印、一键导出为 PNG 图片。
+> 一个纯前端、零依赖的在线便签工具，单 HTML 文件即可运行。
 
-## ✨ 特性
+## 预览
 
-- 📝 **拟物设计** — 胶带、纸张纹理、横线，还原真实便签质感
-- 🔤 **字体切换** — 支持系统字体 + 自定义字体（通过 `fonts.json` 配置）
-- 🔍 **字体搜索** — 下拉框内置实时搜索，快速定位字体
-- 📅 **日期水印** — 可选在导出图片时添加日期
-- 💾 **导出 PNG** — 一键导出高清便签图片（支持 Ctrl+Enter 快捷键）
-- 📱 **响应式** — 适配桌面和移动端
+![preview](/jpg/1.jpg)
 
-## 🚀 在线预览
+## 功能特性
 
-> 部署到 GitHub Pages 后即可访问 `https://你的用户名.github.io/memo-paper/`
+| 特性 | 说明 |
+|------|------|
+| 🎨 **6 种便签颜色** | 暖黄、柔粉、淡蓝、薄荷、浅紫、暖橙 |
+| ✍️ **3 种纸张纹理** | 横线、方格、空白 |
+| 🔤 **字体管理** | 支持系统字体 + 本地字体文件上传（.ttf / .otf / .woff / .woff2） |
+| ⚙️ **排版微调** | 字号（14–28px）、行距（1.4–2.4）实时可调 |
+| 💾 **自动保存** | 内容自动写入 LocalStorage，刷新不丢失 |
+| 📤 **导出图片** | 一键导出高分辨率 PNG（3x DPR） |
+| 📅 **日期水印** | 可选在导出图片底部显示当前日期 |
+| ⌨️ **快捷键** | `Ctrl + Enter` 快速导出 |
 
-## 📂 项目结构
+## 快速开始
+
+无需构建，直接打开即可使用：
+
+```bash
+git clone https://github.com/YOUR_USERNAME/memo-paper.git
+cd memo-paper
+open index.html
+```
+
+或部署到任意静态托管服务（GitHub Pages、Vercel、Netlify 等）。
+
+## 字体上传说明
+
+1. 点击字体选择框中的「上传字体文件」
+2. 选择本地字体文件（支持多选批量上传）
+3. 上传成功后自动加入「我的字体」分组
+4. 上传的字体仅在当前浏览器会话中有效（通过 Blob URL + FontFace API 加载）
+
+## 技术栈
+
+- 纯原生 HTML / CSS / JavaScript
+- 零第三方依赖
+- 使用 Canvas API 生成导出图片
+- 使用 FontFace API 动态加载本地字体
+- LocalStorage 持久化存储
+
+## 浏览器兼容性
+
+| 浏览器 | 支持情况 |
+|--------|----------|
+| Chrome / Edge | ✅ 完整支持 |
+| Firefox | ✅ 完整支持 |
+| Safari | ✅ 完整支持 |
+| 移动端浏览器 | ✅ 基本支持（导出功能可用） |
+
+> 字体上传功能需要浏览器支持 [FontFace API](https://caniuse.com/font-loading)。
+
+## 项目结构
 
 ```
 memo-paper/
-├── index.html          # 主页面
-├── fonts.json          # 字体配置文件
-├── README.md           # 本文件
-├── .gitignore          # Git 忽略规则
-└── fonts/              # 字体文件目录（可选，见下方说明）
-    └── ...
+└──jpg          # 存放截图的地方（用于展示图片）
+└── index.html          # 完整的单文件应用（含样式、脚本、HTML）
 ```
 
-## 🔤 字体配置
+## 自定义主题
 
-编辑 `fonts.json` 添加你的字体：
+便签颜色定义在 CSS 变量中，可自由修改：
 
-```json
-{
-  "fonts": [
-    { "name": "系统默认", "family": "system-ui, sans-serif", "type": "system" },
-    { "name": "宋体", "family": "SimSun, serif", "type": "fallback" },
-    {
-      "name": "英-衬线 · My Font",
-      "family": "'MyFont', serif",
-      "src": "./fonts/my-font/MyFont-Regular.ttf",
-      "type": "custom"
-    }
-  ]
-}
+```css
+/* 在 <style> 标签中搜索以下颜色值 */
+#fef9e7   /* 暖黄 */
+#ffe4e1   /* 柔粉 */
+#e0f0ff   /* 淡蓝 */
+#e8f5e9   /* 薄荷 */
+#f3e5f5   /* 浅紫 */
+#fff3e0   /* 暖橙 */
 ```
 
-### 字体文件路径说明
+## 许可证
 
-- `type: "system"` — 系统自带字体，无需文件
-- `type: "fallback"` — 系统常见字体，无需文件
-- `type: "custom"` — 自定义字体，需放在 `fonts/` 目录下，并通过 `src` 指定相对路径
+[MIT](LICENSE)
 
-## ⚠️ 关于字体文件
+---
 
-本项目**默认不包含字体文件**。原因：
-- 商用字体文件体积大，不适合放入 Git 仓库
-- GitHub 单文件限制 100MB，仓库建议 < 1GB
-
-### 推荐做法
-
-**方式一：本地使用（推荐）**
-1. 克隆仓库到本地
-2. 将你的字体文件放入 `fonts/` 目录
-3. 运行 `python generate_fonts_json.py` 自动生成 `fonts.json
-4. 用浏览器打开 `index.html` 即可使用
-
-**方式二：精选字体上传 GitHub Pages**
-1. 挑选 10-50 个常用字体放入 `fonts/` 目录
-2. 确保总大小 < 100MB
-3. 推送至 GitHub，开启 GitHub Pages
-
-**方式三：使用 CDN / 外部链接**
-在 `fonts.json` 中，`src` 支持完整 URL：
-```json
-{ "src": "https://cdn.example.com/fonts/MyFont.woff2" }
-```
-
-## 🛠️ 本地开发
-
-无需构建工具，直接用浏览器打开 `index.html`。
-
-如需本地服务器：
-```bash
-# Python 3
-python -m http.server 8000
-
-# Node.js
-npx serve .
-```
-
-## 📄 开源协议
-
-MIT License
+Made with ☕ and sticky notes.

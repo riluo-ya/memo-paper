@@ -226,6 +226,15 @@
     .save-dot.show { opacity: 1; }
     .save-dot.saving { background: #f39c12; animation: pulse 1s infinite; }
 
+    /* 字体上传按钮 */
+    .upload-font-btn {
+      padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05);
+      background: rgba(255,255,255,0.4); color: #999; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 4px; transition: all 0.4s; white-space: nowrap;
+    }
+    .upload-font-btn:hover { background: rgba(255,255,255,0.6); color: #777; }
+    .upload-font-btn input { display: none; }
+
     /* 字体下载进度条 */
     .font-progress-overlay {
       position: fixed; inset: 0; z-index: 99999;
@@ -266,16 +275,16 @@
 <body>
 <div class="save-dot" id="saveDot"></div>
 
-<!-- 字体下载进度覆盖层 -->
+<!-- 字体加载进度覆盖层 -->
 <div class="font-progress-overlay" id="fontProgressOverlay">
-  <div class="fp-title" id="fpTitle">正在下载字体…</div>
+  <div class="fp-title" id="fpTitle">正在加载字体…</div>
   <div class="fp-bar-wrap"><div class="fp-bar" id="fpBar"></div></div>
-  <div class="fp-info" id="fpInfo">0 / 0</div>
+  <div class="fp-info" id="fpInfo">处理中…</div>
 </div>
 
 <div class="header">
   <h1>便签</h1>
-  <p>2.0.6</p>
+  <p>2.1.0</p>
 </div>
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
@@ -364,7 +373,7 @@
 
 <script>
   (() => {
-    // ---------- 铁打的内置字体（永远可以回退） ----------
+    // ---------- 内置字体 ----------
     const BUILTIN_FONTS = [
       { name: '系统默认', family: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', type: 'system' },
       { name: '宋体', family: 'SimSun, "Songti SC", serif', type: 'fallback' },
@@ -379,7 +388,7 @@
       selectedFontIndex: 0,
       focusedIndex: 0,
       isDropdownOpen: false,
-      loadedCustomFonts: new Map(), // src -> { blobUrl, familyName }
+      loadedCustomFonts: new Map(), // src (blobUrl) -> { familyName, fontObj }
       currentColor: 'yellow',
       paperMode: 'lines',
       fontSize: 16,
@@ -432,17 +441,15 @@
       els._toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
     };
 
-    // 显示下载进度
-    const showFontProgress = (current, total, fontName) => {
-      if (total <= 0) { els.fontProgressOverlay.classList.remove('show'); return; }
-      els.fontProgressOverlay.classList.add('show');
-      const pct = Math.round((current / total) * 100);
-      els.fpBar.style.width = pct + '%';
-      els.fpInfo.textContent = current + ' / ' + total;
-      els.fpTitle.textContent = fontName ? '正在下载：' + fontName : '正在下载字体…';
-      if (current >= total) {
-        setTimeout(() => els.fontProgressOverlay.classList.remove('show'), 400);
+    const showFontProgress = (show, title, pct, info) => {
+      if (!show) {
+        els.fontProgressOverlay.classList.remove('show');
+        return;
       }
+      els.fontProgressOverlay.classList.add('show');
+      if (title) els.fpTitle.textContent = title;
+      if (pct !== undefined) els.fpBar.style.width = pct + '%';
+      if (info) els.fpInfo.textContent = info;
     };
 
     // 确保字体列表有效
@@ -464,6 +471,8 @@
         let category = '其他';
         if (font.type === 'system' || font.type === 'fallback') {
           category = '系统字体';
+        } else if (font.type === 'upload') {
+          category = '我的字体';
         } else if (name.includes('·')) {
           category = name.split('·')[0].trim();
         } else if (/[\u4e00-\u9fa5]/.test(name)) {
@@ -480,6 +489,7 @@
       ensureValidFonts();
       els.fontDropdown.innerHTML = '';
 
+      // 搜索框
       const searchWrap = document.createElement('div');
       searchWrap.className = 'font-search';
       const searchInput = document.createElement('input');
@@ -493,8 +503,23 @@
       searchWrap.appendChild(searchInput);
       els.fontDropdown.appendChild(searchWrap);
 
+      // 上传按钮
+      const uploadWrap = document.createElement('div');
+      uploadWrap.style.cssText = 'padding: 6px 7px; border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 3px;';
+      const uploadLabel = document.createElement('label');
+      uploadLabel.className = 'upload-font-btn';
+      uploadLabel.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>上传字体文件';
+      const uploadInput = document.createElement('input');
+      uploadInput.type = 'file';
+      uploadInput.accept = '.ttf,.otf,.woff,.woff2';
+      uploadInput.multiple = true;
+      uploadInput.addEventListener('change', (e) => handleFontUpload(e.target.files));
+      uploadLabel.appendChild(uploadInput);
+      uploadWrap.appendChild(uploadLabel);
+      els.fontDropdown.appendChild(uploadWrap);
+
       const groups = groupFonts(state.fonts);
-      const groupOrder = ['系统字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
+      const groupOrder = ['系统字体', '我的字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
       let globalIndex = 0;
 
       const categories = [];
@@ -519,7 +544,7 @@
           li.textContent = displayName;
           li.dataset.index = font.originalIndex;
           li.dataset.globalIndex = globalIndex;
-          li.title = font.name + (font.type === 'custom' ? ' (点击下载)' : '');
+          li.title = font.name + (font.type === 'upload' ? ' (已上传)' : '');
           if (font.originalIndex === state.selectedFontIndex) li.classList.add('selected');
           els.fontDropdown.appendChild(li);
           globalIndex++;
@@ -588,20 +613,17 @@
       }
     };
 
-    // 选择字体（如果是自定义字体，先下载再应用）
+    // 选择字体
     const selectFont = async (index, skipSave = false) => {
       if (!state.fonts.length || index < 0 || index >= state.fonts.length) {
         index = 0;
       }
       const font = state.fonts[index];
       
-      // 如果是自定义字体且未下载，先下载
-      if (font.type === 'custom' && font.src && !state.loadedCustomFonts.has(font.src)) {
-        const ok = await downloadAndLoadFont(font);
-        if (!ok) {
-          showToast('字体下载失败');
-          return;
-        }
+      // 如果是上传字体且未加载，先加载
+      if (font.type === 'upload' && font.src && !state.loadedCustomFonts.has(font.src)) {
+        showToast('字体尚未就绪');
+        return;
       }
 
       state.selectedFontIndex = index;
@@ -614,66 +636,68 @@
       if (!skipSave) scheduleSave();
     };
 
-    // 下载字体文件并加载
-    const downloadAndLoadFont = async (font) => {
-      if (state.loadedCustomFonts.has(font.src)) return true;
+    // 处理字体上传
+    const handleFontUpload = async (files) => {
+      if (!files || files.length === 0) return;
       
-      els.fpTitle.textContent = '正在下载：' + font.name;
-      els.fontProgressOverlay.classList.add('show');
-      els.fpBar.style.width = '0%';
-      els.fpInfo.textContent = '准备下载…';
+      const validExts = ['.ttf', '.otf', '.woff', '.woff2'];
+      const fontFiles = Array.from(files).filter(f => {
+        const ext = '.' + f.name.split('.').pop().toLowerCase();
+        return validExts.includes(ext);
+      });
 
-      try {
-        const response = await fetch(font.src);
-        if (!response.ok) throw new Error('HTTP ' + response.status);
+      if (fontFiles.length === 0) {
+        showToast('请选择 .ttf / .otf / .woff / .woff2 格式的字体文件');
+        return;
+      }
+
+      showFontProgress(true, '正在读取字体文件…', 0, '0 / ' + fontFiles.length);
+
+      let successCount = 0;
+      for (let i = 0; i < fontFiles.length; i++) {
+        const file = fontFiles[i];
+        showFontProgress(true, '正在加载：' + file.name, Math.round((i / fontFiles.length) * 100), (i + 1) + ' / ' + fontFiles.length);
         
-        const total = parseInt(response.headers.get('content-length')) || 0;
-        const reader = response.body.getReader();
-        const chunks = [];
-        let received = 0;
-        
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          received += value.length;
-          if (total > 0) {
-            els.fpBar.style.width = Math.round((received / total) * 100) + '%';
-            els.fpInfo.textContent = (received / 1024).toFixed(1) + ' KB / ' + (total / 1024).toFixed(1) + ' KB';
-          } else {
-            els.fpInfo.textContent = (received / 1024).toFixed(1) + ' KB';
-          }
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const blob = new Blob([arrayBuffer]);
+          const blobUrl = URL.createObjectURL(blob);
+          
+          // 从文件名生成字体族名（去掉扩展名）
+          const familyName = file.name.replace(/\.[^/.]+$/, '').trim();
+          const displayName = familyName;
+          
+          // 创建 FontFace
+          const ff = new FontFace(familyName, arrayBuffer);
+          await ff.load();
+          document.fonts.add(ff);
+          
+          state.loadedCustomFonts.set(blobUrl, { familyName, fontObj: ff });
+          
+          // 添加到字体列表
+          state.fonts.push({
+            name: displayName,
+            family: '"' + familyName + '"',
+            src: blobUrl,
+            type: 'upload'
+          });
+          
+          successCount++;
+        } catch (err) {
+          console.error('字体加载失败:', file.name, err);
+          showToast('"' + file.name + '" 加载失败');
         }
+      }
 
-        // 合并 chunks 创建 blob
-        const allChunks = new Uint8Array(received);
-        let position = 0;
-        for (const chunk of chunks) {
-          allChunks.set(chunk, position);
-          position += chunk.length;
-        }
-        const blob = new Blob([allChunks]);
-        const blobUrl = URL.createObjectURL(blob);
-
-        // 提取纯字体族名（去掉引号和 fallback）
-        const familyName = font.family.split(',')[0].replace(/['"]/g, '').trim();
-        
-        // 用 blob URL 创建 FontFace
-        const ff = new FontFace(familyName, 'url(' + blobUrl + ')');
-        await ff.load();
-        document.fonts.add(ff);
-        
-        state.loadedCustomFonts.set(font.src, { blobUrl, familyName });
-        
-        els.fpBar.style.width = '100%';
-        setTimeout(() => els.fontProgressOverlay.classList.remove('show'), 300);
-        return true;
-      } catch (err) {
-        console.error('字体下载失败:', font.name, err);
-        els.fontProgressOverlay.classList.remove('show');
-        els.fontError.textContent = '字体 "' + font.name + '" 下载失败：' + (err.message || '网络错误');
-        els.fontError.classList.add('show');
-        return false;
+      showFontProgress(false);
+      
+      if (successCount > 0) {
+        buildDropdown();
+        showToast('成功加载 ' + successCount + ' 个字体');
+        // 自动选中新上传的最后一个字体
+        state.selectedFontIndex = state.fonts.length - 1;
+        els.fontLabel.textContent = state.fonts[state.selectedFontIndex].name;
+        applyFont(state.selectedFontIndex);
       }
     };
 
@@ -686,13 +710,11 @@
         els.editor.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         return;
       }
-      if (font.type === 'custom' && font.src) {
+      if (font.type === 'upload' && font.src) {
         const loaded = state.loadedCustomFonts.get(font.src);
         if (loaded) {
-          // 使用下载后的字体族名
           els.editor.style.fontFamily = '"' + loaded.familyName + '"';
         } else {
-          // 未下载时回退
           els.editor.style.fontFamily = font.family;
         }
       } else {
@@ -785,17 +807,10 @@
       const bottomBarHeight = 44;
 
       // 确定要使用的字体族名
-      if (font?.type === 'custom' && font.src) {
-        if (!state.loadedCustomFonts.has(font.src)) {
-          const ok = await downloadAndLoadFont(font);
-          if (!ok) {
-            fontFamily = 'system-ui, -apple-system, sans-serif';
-          }
-        }
+      if (font?.type === 'upload' && font.src) {
         const loaded = state.loadedCustomFonts.get(font.src);
         if (loaded) {
           fontFamily = '"' + loaded.familyName + '"';
-          // 等待字体在 canvas 中可用
           try {
             await document.fonts.load(fontSize + 'px ' + fontFamily);
           } catch (e) {}
@@ -869,26 +884,6 @@
         lines.push(line);
       });
       return lines;
-    };
-
-    // ---------- 加载 fonts.json ----------
-    const loadFontsConfig = async () => {
-      try {
-        const res = await fetch('fonts.json');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && Array.isArray(data.fonts) && data.fonts.length > 0) {
-            const jsonNames = new Set(data.fonts.map(f => f.name));
-            const missingBuiltins = BUILTIN_FONTS.filter(bf => !jsonNames.has(bf.name));
-            state.fonts = [...missingBuiltins, ...data.fonts];
-          }
-        }
-      } catch (e) {
-        console.warn('fonts.json 加载失败，使用内置字体', e);
-      }
-      state.selectedFontIndex = 0;
-      buildDropdown();
-      applyFont(0);
     };
 
     // 事件绑定
@@ -995,7 +990,6 @@
       updateEditorStyle();
       updatePaperTexture();
       updateNoteColor();
-      await loadFontsConfig();
       state.isInitialLoad = false;
     };
 
