@@ -275,7 +275,7 @@
 
 <div class="header">
   <h1>便签</h1>
-  <p>2.0.4</p>
+  <p>2.0.5</p>
 </div>
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
@@ -379,7 +379,7 @@
       selectedFontIndex: 0,
       focusedIndex: 0,
       isDropdownOpen: false,
-      loadedCustomFonts: new Map(), // src -> blobUrl
+      loadedCustomFonts: new Map(), // src -> { blobUrl, familyName }
       currentColor: 'yellow',
       paperMode: 'lines',
       fontSize: 16,
@@ -655,13 +655,15 @@
         const blob = new Blob([allChunks]);
         const blobUrl = URL.createObjectURL(blob);
 
+        // 提取纯字体族名（去掉引号和 fallback）
+        const familyName = font.family.split(',')[0].replace(/['"]/g, '').trim();
+        
         // 用 blob URL 创建 FontFace
-        const family = font.family.replace(/['"]/g, '').trim();
-        const ff = new FontFace(family, 'url(' + blobUrl + ')');
+        const ff = new FontFace(familyName, 'url(' + blobUrl + ')');
         await ff.load();
         document.fonts.add(ff);
         
-        state.loadedCustomFonts.set(font.src, { blobUrl, family: font.family });
+        state.loadedCustomFonts.set(font.src, { blobUrl, familyName });
         
         els.fpBar.style.width = '100%';
         setTimeout(() => els.fontProgressOverlay.classList.remove('show'), 300);
@@ -681,14 +683,16 @@
       els.fontError.classList.remove('show');
       els.fontError.textContent = '';
       if (!font) {
-        els.editor.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+        els.editor.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
         return;
       }
       if (font.type === 'custom' && font.src) {
         const loaded = state.loadedCustomFonts.get(font.src);
         if (loaded) {
-          els.editor.style.fontFamily = loaded.family;
+          // 使用下载后的字体族名
+          els.editor.style.fontFamily = '"' + loaded.familyName + '"';
         } else {
+          // 未下载时回退
           els.editor.style.fontFamily = font.family;
         }
       } else {
@@ -772,7 +776,7 @@
       showToast('正在生成...');
 
       const font = state.fonts[state.selectedFontIndex];
-      let fontFamily = font?.family || 'system-ui, -apple-system, sans-serif';
+      let fontFamily = 'system-ui, -apple-system, sans-serif';
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const dpr = 3, padding = 40, contentWidth = 440;
@@ -780,7 +784,7 @@
       const lineHeightPx = Math.round(fontSize * state.lineHeight);
       const bottomBarHeight = 44;
 
-      // 如果是自定义字体，确保已下载
+      // 确定要使用的字体族名
       if (font?.type === 'custom' && font.src) {
         if (!state.loadedCustomFonts.has(font.src)) {
           const ok = await downloadAndLoadFont(font);
@@ -788,9 +792,16 @@
             fontFamily = 'system-ui, -apple-system, sans-serif';
           }
         }
-        try {
-          await document.fonts.load(fontSize + 'px ' + fontFamily);
-        } catch (e) {}
+        const loaded = state.loadedCustomFonts.get(font.src);
+        if (loaded) {
+          fontFamily = '"' + loaded.familyName + '"';
+          // 等待字体在 canvas 中可用
+          try {
+            await document.fonts.load(fontSize + 'px ' + fontFamily);
+          } catch (e) {}
+        }
+      } else if (font) {
+        fontFamily = font.family;
       }
 
       ctx.font = fontSize + 'px ' + fontFamily;
