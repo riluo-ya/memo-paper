@@ -1,4 +1,31 @@
+{
+  "fonts": [
     {
+      "name": "系统默认",
+      "family": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "type": "system"
+    },
+    {
+      "name": "宋体",
+      "family": "SimSun, 'Songti SC', serif",
+      "type": "fallback"
+    },
+    {
+      "name": "黑体",
+      "family": "SimHei, 'Heiti SC', sans-serif",
+      "type": "fallback"
+    },
+    {
+      "name": "楷体",
+      "family": "KaiTi, 'Kaiti SC', serif",
+      "type": "fallback"
+    },
+    {
+      "name": "仿宋",
+      "family": "FangSong, 'Fangsong SC', serif",
+      "type": "fallback"
+    },
+        {
       "name": "中 · 851马克笔手写体",
       "family": "'851马克笔手写体', serif",
       "src": "./fonts/zh/851马克笔手写体.ttf",
@@ -1744,10 +1771,6 @@
       "src": "./fonts/zh/黑薔薇粗体.ttf",
       "type": "custom"
     }
-  ]
-}
-{
-  "fonts": [
     {
       "name": "英 · 10OrangeJuiceRegular-x2mK",
       "family": "'10OrangeJuiceRegular-x2mK', serif",
@@ -9056,3 +9079,5 @@
       "src": "./fonts/en/shufa/wintersoul-font/Wintersoul-OVVXo.ttf",
       "type": "custom"
     },
+    ]
+}
