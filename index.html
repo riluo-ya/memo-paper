@@ -1,1000 +1,2079 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>便签 · memo-paper</title>
-  <style>
-    :root {
-      --bg: #f0ebe3;
-      --accent: #8b7355;
-      --accent-soft: #a69076;
-      --text: #3a3a3a;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px 40px;
-      position: relative;
-    }
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse at 25% 15%, rgba(255,255,255,0.5) 0%, transparent 50%),
-        radial-gradient(ellipse at 75% 85%, rgba(255,255,255,0.35) 0%, transparent 50%),
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.006) 2px, rgba(0,0,0,0.006) 3px);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .header {
-      position: relative; z-index: 1; text-align: center; margin-bottom: 20px;
-      animation: fadeInDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-    }
-    .header h1 {
-      font-size: 22px; font-weight: 600; color: var(--accent);
-      letter-spacing: 14px; opacity: 0.75;
-    }
-    .header p { font-size: 10px; color: #c4b49a; letter-spacing: 5px; margin-top: 3px; text-transform: uppercase; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="一个精致的在线便签应用，支持自定义字体、主题、导出图片、图片插入与分享链接">
+    <meta name="theme-color" content="#8b7355">
+    <title>便签 · MEMO-PAPER</title>
+    <style>
+        :root {
+            --bg: #f0ebe3;
+            --accent: #8b7355;
+            --accent-soft: #a69076;
+            --text: #3a3a3a;
+            --body-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --panel-bg: rgba(255, 255, 255, 0.45);
+            --input-bg: rgba(255, 255, 255, 0.25);
+            --input-focus-bg: rgba(255, 255, 255, 0.4);
+            --btn-bg: rgba(255, 255, 255, 0.5);
+            --btn-hover-bg: rgba(255, 255, 255, 0.75);
+            --border-subtle: rgba(0, 0, 0, 0.06);
+            --toast-bg: rgba(45, 42, 38, 0.92);
+            --toast-text: #d4c4a8;
+            --dropdown-bg: rgba(255, 255, 255, 0.98);
+            --dropdown-hover: rgba(139, 115, 85, 0.06);
+            --dropdown-selected: rgba(139, 115, 85, 0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --focus-ring: rgba(139, 115, 85, 0.25);
+            --danger: #c0392b;
+            --danger-soft: rgba(220,80,60,0.15);
+        }
 
-    .sticky-note {
-      position: relative; z-index: 1; width: 100%; max-width: 500px; border-radius: 3px;
-      transition: transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease;
-      transform: rotate(-0.4deg);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05), 0 3px 8px rgba(0,0,0,0.04), 0 8px 20px rgba(0,0,0,0.03), 0 16px 40px rgba(0,0,0,0.02);
-      animation: fadeInUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s both;
-    }
-    .sticky-note:hover {
-      transform: rotate(0deg) translateY(-2px);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 6px 14px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.04), 0 24px 48px rgba(0,0,0,0.03);
-    }
-    .tape {
-      position: absolute; top: -12px; left: 50%; transform: translateX(-50%) rotate(-2deg);
-      width: 80px; height: 28px; background: rgba(255,255,255,0.55);
-      border: 1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      backdrop-filter: blur(4px); z-index: 10; border-radius: 2px; overflow: hidden;
-      transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
-    }
-    .sticky-note:hover .tape { transform: translateX(-50%) rotate(-0.5deg); }
-    .tape::before {
-      content: ''; position: absolute; inset: 0;
-      background: repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(255,255,255,0.35) 4px, rgba(255,255,255,0.35) 8px);
-    }
+        body.dark-mode {
+            --bg: #1a1815;
+            --accent: #b8a58e;
+            --accent-soft: #c4b29d;
+            --text: #d4c4a8;
+            --panel-bg: rgba(30, 28, 25, 0.65);
+            --input-bg: rgba(30, 28, 25, 0.45);
+            --input-focus-bg: rgba(30, 28, 25, 0.6);
+            --btn-bg: rgba(40, 37, 33, 0.55);
+            --btn-hover-bg: rgba(40, 37, 33, 0.75);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --toast-bg: rgba(220, 210, 190, 0.92);
+            --toast-text: #3a3028;
+            --dropdown-bg: rgba(35, 32, 28, 0.98);
+            --dropdown-hover: rgba(180, 160, 140, 0.1);
+            --dropdown-selected: rgba(180, 160, 140, 0.18);
+            --focus-ring: rgba(180, 160, 140, 0.3);
+            --danger-soft: rgba(220,80,60,0.2);
+        }
 
-    .paper-texture { position: absolute; inset: 0; border-radius: 3px; opacity: 0.4; pointer-events: none; z-index: 0; }
-    .paper-texture.lines {
-      background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.03) 31px, rgba(0,0,0,0.03) 32px);
-    }
-    .paper-texture.grid {
-      background:
-        repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.03) 31px, rgba(0,0,0,0.03) 32px),
-        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0,0,0,0.02) 31px, rgba(0,0,0,0.02) 32px);
-    }
-    .paper-texture.blank { background: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--body-font);
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px 48px;
+            position: relative;
+            transition: background 0.4s ease, color 0.4s ease;
+            color: var(--text);
+        }
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background: radial-gradient(ellipse at 25% 15%, rgba(255,255,255,0.5) 0%, transparent 50%),
+                        radial-gradient(ellipse at 75% 85%, rgba(255,255,255,0.35) 0%, transparent 50%),
+                        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.006) 2px, rgba(0,0,0,0.006) 3px);
+            pointer-events: none; z-index: 0; transition: opacity 0.4s ease;
+        }
+        body.dark-mode::before { opacity: 0.35; }
 
-    .note-inner { position: relative; z-index: 1; padding: 20px 22px 10px; }
-    .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        *:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+            border-radius: 4px;
+        }
+        button, .select-trigger, .color-pick-btn, .paper-mode-btn, .align-btn, .footer-icon-btn, .export-btn, .upload-font-btn, .settings-btn, .share-btn {
+            outline: none;
+        }
+        button:focus-visible, .select-trigger:focus-visible, .color-pick-btn:focus-visible, .paper-mode-btn:focus-visible, .align-btn:focus-visible, .footer-icon-btn:focus-visible, .export-btn:focus-visible, .upload-font-btn:focus-visible, .settings-btn:focus-visible, .share-btn:focus-visible {
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
 
-    .custom-select { position: relative; min-width: 130px; max-width: 170px; flex-shrink: 0; }
-    .select-trigger {
-      display: flex; align-items: center; justify-content: space-between; gap: 6px;
-      padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.5); font-size: 13px; color: var(--text); cursor: pointer;
-      transition: all 0.25s; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .select-trigger:hover { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.08); }
-    .select-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,115,85,0.06); background: rgba(255,255,255,0.85); }
-    .select-trigger .arrow {
-      width: 0; height: 0; border-left: 3.5px solid transparent; border-right: 3.5px solid transparent;
-      border-top: 3.5px solid #bbb; transition: transform 0.2s; flex-shrink: 0;
-    }
-    .select-trigger.open .arrow { transform: rotate(180deg); }
+        .header {
+            position: relative; z-index: 1; text-align: center; margin-bottom: 20px;
+            animation: fadeInDown 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        .header h1 {
+            font-size: 24px; font-weight: 600; color: var(--accent);
+            letter-spacing: 16px; opacity: 0.8; transition: color 0.4s ease;
+        }
+        .header p {
+            font-size: 10px; color: #c4b49a; letter-spacing: 6px; margin-top: 4px;
+            text-transform: uppercase; transition: color 0.4s ease;
+        }
+        body.dark-mode .header p { color: #7a6e5e; }
 
-    .select-dropdown {
-      position: fixed; min-width: 210px; width: max-content; max-width: 320px; max-height: 320px;
-      overflow-y: auto; background: rgba(255,255,255,0.98); border: 1px solid rgba(0,0,0,0.05);
-      border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.05);
-      list-style: none; padding: 4px; margin: 0; opacity: 0; transform: translateY(-6px) scale(0.96);
-      pointer-events: none; transition: all 0.25s; z-index: 99999;
-    }
-    .select-dropdown.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
-    .select-dropdown::-webkit-scrollbar { width: 4px; }
-    .select-dropdown::-webkit-scrollbar-track { background: transparent; }
-    .select-dropdown::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        .sticky-note {
+            position: relative; z-index: 1; width: 100%; max-width: 520px; border-radius: 6px;
+            transition: transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease, background 0.4s ease;
+            transform: rotate(-0.3deg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04), 0 6px 12px rgba(0,0,0,0.04), 0 12px 24px rgba(0,0,0,0.03), 0 24px 48px rgba(0,0,0,0.02);
+            animation: fadeInUp 0.8s cubic-bezier(0.22,1,0.36,1) 0.15s both;
+        }
+        .sticky-note:hover {
+            transform: rotate(0deg) translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.06), 0 10px 20px rgba(0,0,0,0.05), 0 20px 36px rgba(0,0,0,0.04), 0 32px 64px rgba(0,0,0,0.03);
+        }
+        .sticky-note.locked-note {
+            transform: rotate(0deg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.03);
+        }
+        .sticky-note.locked-note:hover {
+            transform: rotate(0deg) translateY(-1px);
+        }
+        .sticky-note.drag-over {
+            box-shadow: 0 0 0 3px var(--accent-soft), 0 4px 8px rgba(0,0,0,0.06);
+            transform: rotate(0deg) translateY(-2px);
+        }
+        .tape {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%) rotate(-2deg);
+            width: 80px; height: 28px; background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            backdrop-filter: blur(6px); z-index: 10; border-radius: 3px; overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), background 0.4s ease;
+        }
+        .sticky-note:hover .tape { transform: translateX(-50%) rotate(-0.5deg); }
+        .tape::before {
+            content: ''; position: absolute; inset: 0;
+            background: repeating-linear-gradient(90deg, transparent, transparent 4px, rgba(255,255,255,0.4) 4px, rgba(255,255,255,0.4) 8px);
+        }
+        body.dark-mode .tape { background: rgba(60,55,48,0.6); border-color: rgba(60,55,48,0.5); }
 
-    .select-dropdown .group-label {
-      padding: 5px 12px 2px; font-size: 10px; font-weight: 700; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 0.6px; pointer-events: none;
-      border-top: 1px solid rgba(0,0,0,0.03); margin-top: 3px;
-    }
-    .select-dropdown .group-label:first-child { border-top: none; margin-top: 0; }
-    .select-dropdown li {
-      padding: 6px 12px 6px 18px; border-radius: 6px; font-size: 13px; color: #555;
-      cursor: pointer; transition: all 0.12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .select-dropdown li:hover, .select-dropdown li.focused { background: rgba(139,115,85,0.06); color: var(--text); }
-    .select-dropdown li.selected { background: rgba(139,115,85,0.12); color: #5a4a3a; font-weight: 500; }
-    .select-dropdown .font-search {
-      padding: 5px 7px; position: sticky; top: 0; background: rgba(255,255,255,0.98); z-index: 1;
-      border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 3px;
-    }
-    .select-dropdown .font-search input {
-      width: 100%; padding: 6px 9px; border: 1px solid rgba(0,0,0,0.06); border-radius: 6px;
-      font-size: 13px; outline: none; background: rgba(0,0,0,0.02);
-    }
-    .select-dropdown .font-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(139,115,85,0.06); background: #fff; }
+        .paper-texture {
+            position: absolute; inset: 0; border-radius: 6px; opacity: 0.35; pointer-events: none; z-index: 0;
+            transition: opacity 0.4s ease;
+        }
+        body.dark-mode .paper-texture { opacity: 0.2; }
+        .paper-texture.lines {
+            background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.025) 31px, rgba(0,0,0,0.025) 32px);
+        }
+        body.dark-mode .paper-texture.lines {
+            background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.015) 31px, rgba(255,255,255,0.015) 32px);
+        }
+        .paper-texture.grid {
+            background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.025) 31px, rgba(0,0,0,0.025) 32px),
+                        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(0,0,0,0.018) 31px, rgba(0,0,0,0.018) 32px);
+        }
+        body.dark-mode .paper-texture.grid {
+            background: repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(255,255,255,0.015) 31px, rgba(255,255,255,0.015) 32px),
+                        repeating-linear-gradient(90deg, transparent, transparent 31px, rgba(255,255,255,0.01) 31px, rgba(255,255,255,0.01) 32px);
+        }
+        .paper-texture.blank { background: none; }
 
-    .tool-group { display: flex; align-items: center; gap: 6px; }
-    .tool-label { font-size: 11px; color: #bbb; white-space: nowrap; user-select: none; }
-    .color-dots { display: flex; gap: 5px; align-items: center; }
-    .color-dot {
-      width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; cursor: pointer;
-      transition: all 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .color-dot:hover { transform: scale(1.25); }
-    .color-dot.active { border-color: rgba(0,0,0,0.15); box-shadow: 0 0 0 2px rgba(255,255,255,0.7), 0 2px 5px rgba(0,0,0,0.12); transform: scale(1.15); }
-    .color-dot[data-color="yellow"] { background: #fef9e7; }
-    .color-dot[data-color="pink"] { background: #ffe4e1; }
-    .color-dot[data-color="blue"] { background: #e0f0ff; }
-    .color-dot[data-color="green"] { background: #e8f5e9; }
-    .color-dot[data-color="purple"] { background: #f3e5f5; }
-    .color-dot[data-color="orange"] { background: #fff3e0; }
+        .note-inner { position: relative; z-index: 1; padding: 22px 24px 12px; }
 
-    .paper-modes { display: flex; gap: 3px; align-items: center; }
-    .paper-mode-btn {
-      width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.4); color: #bbb; font-size: 11px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
-    }
-    .paper-mode-btn:hover { background: rgba(255,255,255,0.6); color: #999; }
-    .paper-mode-btn.active { background: rgba(139,115,85,0.12); color: var(--accent); border-color: rgba(139,115,85,0.15); }
+        .toolbar {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+            padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+        }
+        .toolbar-group {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .toolbar-spacer { flex: 1; }
 
-    .settings-btn {
-      padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.4); color: #999; font-size: 12px; cursor: pointer;
-      display: flex; align-items: center; gap: 4px; transition: all 0.4s; margin-left: auto; white-space: nowrap;
-    }
-    .settings-btn:hover { background: rgba(255,255,255,0.6); color: #777; }
-    .settings-btn.active { background: rgba(139,115,85,0.12); color: var(--accent); border-color: rgba(139,115,85,0.15); }
+        .custom-select { position: relative; min-width: 130px; max-width: 170px; flex-shrink: 0; }
+        .select-trigger {
+            display: flex; align-items: center; justify-content: space-between; gap: 6px;
+            padding: 7px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); font-size: 13px; color: var(--text); cursor: pointer;
+            transition: all 0.25s; user-select: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .select-trigger:hover { background: var(--btn-hover-bg); border-color: rgba(0,0,0,0.1); }
+        .select-trigger.open {
+            border-color: var(--accent); box-shadow: 0 0 0 4px rgba(139,115,85,0.08); background: var(--btn-hover-bg);
+        }
+        .select-trigger .arrow {
+            width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent;
+            border-top: 4px solid #aaa; transition: transform 0.2s; flex-shrink: 0;
+        }
+        .select-trigger.open .arrow { transform: rotate(180deg); }
 
-    .settings-panel {
-      display: none; align-items: center; gap: 16px; margin-bottom: 10px; padding: 8px 12px;
-      background: rgba(255,255,255,0.35); border-radius: 10px; border: 1px solid rgba(0,0,0,0.02);
-      animation: slideDown 0.35s;
-    }
-    .settings-panel.show { display: flex; flex-wrap: wrap; }
-    .setting-item { display: flex; align-items: center; gap: 6px; }
-    .setting-item label { font-size: 12px; color: #aaa; white-space: nowrap; }
-    .setting-item input[type="range"] {
-      -webkit-appearance: none; width: 70px; height: 4px; border-radius: 2px; background: rgba(0,0,0,0.06); outline: none;
-    }
-    .setting-item input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
-      background: var(--accent-soft); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-    }
-    .setting-item .val { font-size: 12px; color: #999; min-width: 20px; }
+        .color-pick-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); cursor: pointer; transition: all 0.25s;
+        }
+        .color-pick-btn:hover { background: var(--btn-hover-bg); }
+        .color-pick-btn .current-color-block {
+            width: 18px; height: 18px; border-radius: 5px; background: #fef9e7;
+            border: 1px solid rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+        .color-pick-btn .color-label {
+            font-size: 12px; color: #888; white-space: nowrap;
+        }
+        .color-pick-btn .arrow { width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent; border-top: 3px solid #aaa; }
 
-    .font-error { font-size: 12px; color: #c0392b; min-height: 16px; margin: -2px 0 4px; opacity: 0; transition: opacity 0.2s; }
-    .font-error.show { opacity: 1; }
+        .color-panel {
+            position: fixed; z-index: 99999; background: var(--dropdown-bg);
+            border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12); padding: 10px;
+            display: none; grid-template-columns: repeat(6, 1fr); gap: 8px;
+            width: max-content; max-width: 260px;
+        }
+        .color-panel.show { display: grid; }
+        .color-panel .color-option {
+            width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+            border: 2px solid transparent; transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .color-option:hover, .color-option:focus-visible { transform: scale(1.1); border-color: rgba(0,0,0,0.1); }
+        .color-option.active {
+            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,115,85,0.15);
+        }
+        .color-option[data-color="yellow"] { background: #fef9e7; }
+        .color-option[data-color="pink"] { background: #ffe4e1; }
+        .color-option[data-color="blue"] { background: #e0f0ff; }
+        .color-option[data-color="green"] { background: #e8f5e9; }
+        .color-option[data-color="purple"] { background: #f3e5f5; }
+        .color-option[data-color="orange"] { background: #fff3e0; }
+        .color-option[data-color="red"] { background: #ffe0e0; }
+        .color-option[data-color="teal"] { background: #e0f4f4; }
+        .color-option[data-color="gray"] { background: #f5f5f5; }
+        .color-option[data-color="cream"] { background: #fffdd0; }
+        .color-option[data-color="lavender"] { background: #f0e6f6; }
+        .color-option[data-color="mint"] { background: #e6f9f0; }
 
-    .editor-wrap { position: relative; }
-    textarea {
-      width: 100%; min-height: 180px; padding: 12px 16px 32px; border: none; border-radius: 4px;
-      background: rgba(255,255,255,0.2); color: var(--text); font-size: 16px; line-height: 1.75;
-      resize: vertical; outline: none; font-family: inherit; transition: background 0.25s, box-shadow 0.25s;
-    }
-    textarea:focus { background: rgba(255,255,255,0.35); box-shadow: 0 0 0 2px rgba(139,115,85,0.04); }
-    textarea::placeholder { color: #ccc; }
+        .select-dropdown {
+            position: fixed; min-width: 220px; width: max-content; max-width: 340px; max-height: 340px;
+            overflow-y: auto; background: var(--dropdown-bg); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md); box-shadow: 0 10px 30px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06);
+            list-style: none; padding: 5px; margin: 0; opacity: 0; transform: translateY(-6px) scale(0.96);
+            pointer-events: none; transition: all 0.25s; z-index: 99999;
+        }
+        .select-dropdown.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        .select-dropdown::-webkit-scrollbar { width: 4px; }
+        .select-dropdown::-webkit-scrollbar-track { background: transparent; }
+        .select-dropdown::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 10px; }
 
-    .note-count {
-      position: absolute; bottom: 8px; right: 10px; font-size: 11px; color: #bbb;
-      background: rgba(255,255,255,0.55); padding: 2px 7px; border-radius: 4px;
-      backdrop-filter: blur(4px); pointer-events: none;
-    }
+        .select-dropdown .group-label {
+            padding: 6px 14px 3px; font-size: 10px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 0.8px; pointer-events: none;
+            border-top: 1px solid var(--border-subtle); margin-top: 4px;
+        }
+        .select-dropdown .group-label:first-child { border-top: none; margin-top: 0; }
+        .select-dropdown li {
+            padding: 7px 14px 7px 20px; border-radius: 6px; font-size: 13px; color: #555;
+            cursor: pointer; transition: all 0.12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        body.dark-mode .select-dropdown li { color: #b8a898; }
+        .select-dropdown li:hover, .select-dropdown li.focused { background: var(--dropdown-hover); color: var(--text); }
+        .select-dropdown li.selected { background: var(--dropdown-selected); color: #5a4a3a; font-weight: 600; }
+        body.dark-mode .select-dropdown li.selected { color: #d4c4a8; }
+        .select-dropdown .font-search {
+            padding: 6px 8px; position: sticky; top: 0; background: var(--dropdown-bg); z-index: 1;
+            border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px;
+        }
+        .select-dropdown .font-search input {
+            width: 100%; padding: 7px 10px; border: 1px solid var(--border-subtle); border-radius: 6px;
+            font-size: 13px; outline: none; background: rgba(0,0,0,0.02); color: var(--text);
+        }
+        body.dark-mode .select-dropdown .font-search input { background: rgba(255,255,255,0.04); }
+        .select-dropdown .font-search input:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,115,85,0.06); background: #fff;
+        }
+        body.dark-mode .select-dropdown .font-search input:focus { background: rgba(255,255,255,0.08); }
 
-    .note-footer {
-      padding: 0 22px 16px; display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; flex-wrap: wrap;
-    }
-    .footer-left { display: flex; align-items: center; gap: 12px; }
-    .toggle-btn { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #bbb; cursor: pointer; }
-    .export-btn {
-      padding: 8px 18px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.45); color: #5a4a3a; font-weight: 600; cursor: pointer;
-      transition: all 0.3s; display: flex; align-items: center; gap: 6px;
-    }
-    .export-btn:hover { background: rgba(255,255,255,0.7); transform: translateY(-1px); box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .select-dropdown .global-font-row-top {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 14px; margin: 2px 4px 8px; border-radius: 8px;
+            background: rgba(255,255,255,0.65); border: 1px solid var(--border-subtle);
+            cursor: pointer; transition: background 0.15s; user-select: none;
+        }
+        body.dark-mode .select-dropdown .global-font-row-top { background: rgba(255,255,255,0.06); }
+        .select-dropdown .global-font-row-top:hover { background: rgba(255,255,255,0.85); }
+        body.dark-mode .select-dropdown .global-font-row-top:hover { background: rgba(255,255,255,0.1); }
+        .select-dropdown .global-font-row-top .gf-label {
+            font-size: 13px; color: #444; display: flex; align-items: center; gap: 8px; font-weight: 500;
+        }
+        body.dark-mode .select-dropdown .global-font-row-top .gf-label { color: #b8a898; }
+        .select-dropdown .global-font-row-top .gf-label svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .select-dropdown .global-font-row-top .gf-toggle {
+            width: 38px; height: 22px; border-radius: 11px; background: #d5d0c8;
+            position: relative; cursor: pointer; transition: background 0.3s; flex-shrink: 0;
+        }
+        .select-dropdown .global-font-row-top .gf-toggle.active { background: var(--accent-soft); }
+        .select-dropdown .global-font-row-top .gf-toggle::after {
+            content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+            border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.3s;
+        }
+        .select-dropdown .global-font-row-top .gf-toggle.active::after { transform: translateX(16px); }
 
-    .toast {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(16px);
-      background: rgba(45,42,38,0.92); color: #d4c4a8; padding: 10px 22px; border-radius: 10px;
-      font-size: 13px; opacity: 0; pointer-events: none; transition: all 0.4s; z-index: 9999;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .tool-btn {
+            width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: #999; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;
+        }
+        .tool-btn:hover { background: var(--btn-hover-bg); color: var(--text); transform: translateY(-1px); }
+        .tool-btn.active {
+            background: rgba(139,115,85,0.12); color: var(--accent); border-color: rgba(139,115,85,0.2);
+            box-shadow: 0 0 0 2px rgba(139,115,85,0.05);
+        }
+        .tool-btn svg { width: 16px; height: 16px; pointer-events: none; }
 
-    .save-dot {
-      position: fixed; top: 12px; right: 12px; z-index: 100; width: 6px; height: 6px;
-      border-radius: 50%; background: #27ae60; opacity: 0; transition: opacity 0.3s;
-    }
-    .save-dot.show { opacity: 1; }
-    .save-dot.saving { background: #f39c12; animation: pulse 1s infinite; }
+        .tool-label {
+            font-size: 11px; color: #aaa; white-space: nowrap; user-select: none; transition: color 0.4s ease;
+            font-weight: 500; letter-spacing: 0.3px;
+        }
+        body.dark-mode .tool-label { color: #8a8070; }
 
-    /* 字体上传按钮 */
-    .upload-font-btn {
-      padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05);
-      background: rgba(255,255,255,0.4); color: #999; font-size: 12px; cursor: pointer;
-      display: flex; align-items: center; gap: 4px; transition: all 0.4s; white-space: nowrap;
-    }
-    .upload-font-btn:hover { background: rgba(255,255,255,0.6); color: #777; }
-    .upload-font-btn input { display: none; }
+        .paper-modes { display: flex; gap: 4px; align-items: center; }
+        .paper-mode-btn {
+            width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: #bbb; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .paper-mode-btn:hover { background: var(--btn-hover-bg); color: #999; }
+        .paper-mode-btn.active {
+            background: rgba(139,115,85,0.1); color: var(--accent); border-color: rgba(139,115,85,0.15);
+        }
 
-    /* 字体下载进度条 */
-    .font-progress-overlay {
-      position: fixed; inset: 0; z-index: 99999;
-      background: rgba(240,235,227,0.85);
-      backdrop-filter: blur(8px);
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px;
-    }
-    .font-progress-overlay.show { display: flex; }
-    .font-progress-overlay .fp-title {
-      font-size: 15px; color: var(--accent); font-weight: 500;
-    }
-    .font-progress-overlay .fp-bar-wrap {
-      width: 220px; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden;
-    }
-    .font-progress-overlay .fp-bar {
-      height: 100%; width: 0%; background: var(--accent-soft); border-radius: 3px;
-      transition: width 0.3s ease;
-    }
-    .font-progress-overlay .fp-info {
-      font-size: 12px; color: #aaa;
-    }
+        .settings-btn, .share-btn {
+            padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: #999; font-size: 12px; cursor: pointer;
+            display: flex; align-items: center; gap: 5px; transition: all 0.3s; white-space: nowrap;
+        }
+        .settings-btn:hover, .share-btn:hover { background: var(--btn-hover-bg); color: #666; }
+        .settings-btn.active, .share-btn.active {
+            background: rgba(139,115,85,0.1); color: var(--accent); border-color: rgba(139,115,85,0.15);
+        }
 
-    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(14px) rotate(-1deg); } to { opacity: 1; transform: translateY(0) rotate(-0.4deg); } }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
+        .settings-panel {
+            display: none; align-items: center; gap: 18px; margin-bottom: 12px; padding: 10px 14px;
+            background: var(--panel-bg); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
+            animation: slideDown 0.35s; transition: background 0.4s ease;
+        }
+        .settings-panel.show { display: flex; flex-wrap: wrap; }
+        .setting-item { display: flex; align-items: center; gap: 6px; }
+        .setting-item label {
+            font-size: 12px; color: #aaa; white-space: nowrap; transition: color 0.4s ease;
+        }
+        body.dark-mode .setting-item label { color: #8a8070; }
+        .setting-item input[type="range"] {
+            -webkit-appearance: none; width: 70px; height: 4px; border-radius: 2px;
+            background: rgba(128,128,128,0.15); outline: none;
+        }
+        .setting-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: var(--accent-soft); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        }
+        .setting-item .val { font-size: 12px; color: #999; min-width: 24px; text-align: right; }
 
-    @media (max-width:480px) {
-      body { padding: 24px 12px 32px; }
-      .header h1 { font-size: 20px; letter-spacing: 10px; }
-      .note-inner { padding: 16px 16px 8px; }
-      textarea { min-height: 160px; font-size: 15px; }
-      .note-footer { padding: 0 16px 12px; }
-    }
-  </style>
+        .setting-item.global-font-setting {
+            border-left: 1px solid var(--border-subtle); padding-left: 16px;
+        }
+        .setting-item.global-font-setting label {
+            display: flex; align-items: center; gap: 6px; cursor: pointer; color: #888; font-size: 12px;
+            user-select: none; transition: color 0.3s;
+        }
+        .setting-item.global-font-setting label.active-label { color: var(--accent); font-weight: 500; }
+        .setting-item.global-font-setting input[type="checkbox"] {
+            accent-color: var(--accent-soft); width: 16px; height: 16px; cursor: pointer;
+        }
+
+        .font-error { font-size: 12px; color: #c0392b; min-height: 16px; margin: -2px 0 4px; opacity: 0; transition: opacity 0.2s; }
+        .font-error.show { opacity: 1; }
+
+        .editor-wrap { position: relative; }
+        textarea {
+            width: 100%; min-height: 180px; padding: 14px 18px 36px; border: none; border-radius: 5px;
+            background: var(--input-bg); color: var(--text); font-size: 16px; line-height: 1.75;
+            resize: vertical; outline: none; font-family: inherit;
+            transition: background 0.25s, box-shadow 0.25s, color 0.4s ease, opacity 0.3s ease;
+        }
+        textarea:focus {
+            background: var(--input-focus-bg); box-shadow: 0 0 0 2px rgba(139,115,85,0.05);
+        }
+        textarea::placeholder { color: #bbb; }
+        body.dark-mode textarea::placeholder { color: #6a6055; }
+        textarea.locked { opacity: 0.75; cursor: default; resize: none; }
+
+        .image-gallery {
+            display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;
+            padding: 0 4px;
+        }
+        .image-item {
+            position: relative; width: 80px; height: 80px; border-radius: 8px;
+            overflow: hidden; border: 1px solid var(--border-subtle);
+            cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .image-item:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .image-item img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+        }
+        .image-item .img-remove {
+            position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+            border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff;
+            border: none; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 12px; opacity: 0; transition: opacity 0.2s;
+            padding: 0; line-height: 1;
+        }
+        .image-item:hover .img-remove { opacity: 1; }
+        .image-item .img-remove:hover { background: var(--danger); }
+
+        .img-preview-overlay {
+            position: fixed; inset: 0; z-index: 100000;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center;
+            cursor: zoom-out; animation: fadeIn 0.2s ease;
+        }
+        .img-preview-overlay.show { display: flex; }
+        .img-preview-overlay img {
+            max-width: 90vw; max-height: 90vh; border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .img-preview-overlay .img-close {
+            position: absolute; top: 20px; right: 20px;
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); color: #fff;
+            border: none; cursor: pointer; font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .img-preview-overlay .img-close:hover { background: rgba(255,255,255,0.25); }
+
+        .drag-hint {
+            position: absolute; inset: 0; z-index: 20;
+            background: rgba(139,115,85,0.08); border: 2px dashed var(--accent-soft);
+            border-radius: 5px; display: none; align-items: center; justify-content: center;
+            pointer-events: none; backdrop-filter: blur(2px);
+        }
+        .drag-hint.show { display: flex; }
+        .drag-hint span {
+            font-size: 14px; color: var(--accent); font-weight: 500;
+            background: var(--panel-bg); padding: 8px 16px; border-radius: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .lock-overlay {
+            position: absolute; inset: 0; z-index: 5;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.02); border-radius: 5px;
+            pointer-events: none;
+        }
+        .lock-overlay.show { display: flex; }
+        .lock-badge {
+            background: var(--panel-bg); backdrop-filter: blur(8px);
+            border: 1px solid var(--border-subtle); border-radius: 20px;
+            padding: 6px 14px; font-size: 12px; color: var(--accent);
+            display: flex; align-items: center; gap: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            animation: fadeInUp 0.3s ease;
+        }
+
+        .note-count {
+            position: absolute; bottom: 8px; right: 12px; font-size: 11px; color: #aaa;
+            background: rgba(255,255,255,0.6); padding: 3px 9px; border-radius: 6px;
+            backdrop-filter: blur(6px); pointer-events: auto; cursor: pointer; transition: all 0.4s ease;
+            display: flex; align-items: center; gap: 5px; font-weight: 500;
+            border: 1px solid transparent;
+        }
+        body.dark-mode .note-count { background: rgba(0,0,0,0.4); color: #9a8e7e; }
+        .note-count:hover { border-color: var(--border-subtle); }
+        .note-count .count-icon { font-size: 10px; opacity: 0.7; }
+
+        .note-footer {
+            padding: 0 24px 18px; display: flex; align-items: center; justify-content: space-between;
+            gap: 14px; flex-wrap: wrap;
+        }
+        .footer-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .footer-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .toggle-btn {
+            display: flex; align-items: center; gap: 6px; font-size: 12px; color: #aaa; cursor: pointer;
+            transition: color 0.4s ease; white-space: nowrap;
+        }
+        body.dark-mode .toggle-btn { color: #8a8070; }
+        .toggle-btn input { accent-color: var(--accent-soft); }
+
+        .footer-icon-btn {
+            width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: #aaa; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.25s; flex-shrink: 0;
+        }
+        .footer-icon-btn:hover { background: var(--btn-hover-bg); color: var(--text); transform: translateY(-1px); }
+        .footer-icon-btn.confirm-danger {
+            background: var(--danger-soft); border-color: rgba(220,80,60,0.3); color: var(--danger);
+            animation: pulse-warn 0.8s infinite;
+        }
+        .footer-icon-btn svg { width: 15px; height: 15px; pointer-events: none; }
+
+        .align-btns { display: flex; gap: 3px; }
+        .align-btn {
+            width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: #bbb; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .align-btn:hover { background: var(--btn-hover-bg); color: #999; }
+        .align-btn.active {
+            background: rgba(139,115,85,0.1); color: var(--accent); border-color: rgba(139,115,85,0.15);
+        }
+        .align-btn svg { width: 14px; height: 14px; pointer-events: none; }
+
+        .saved-time {
+            font-size: 11px; color: #bbb; white-space: nowrap; transition: color 0.4s ease;
+        }
+        body.dark-mode .saved-time { color: #8a8070; }
+
+        .export-btn, .share-btn {
+            padding: 8px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: rgba(255,255,255,0.5); color: #5a4a3a; font-weight: 600; cursor: pointer;
+            transition: all 0.3s; display: flex; align-items: center; gap: 7px; font-size: 13px;
+        }
+        body.dark-mode .export-btn, body.dark-mode .share-btn {
+            background: rgba(180,160,140,0.2); color: #d4c4a8; border-color: rgba(180,160,140,0.2);
+        }
+        .export-btn:hover, .share-btn:hover {
+            background: rgba(255,255,255,0.75); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+        }
+        body.dark-mode .export-btn:hover, body.dark-mode .share-btn:hover { background: rgba(180,160,140,0.3); }
+        .export-btn:disabled, .share-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .hint {
+            font-size: 11px; color: #bbb; white-space: nowrap; transition: color 0.4s ease;
+        }
+        body.dark-mode .hint { color: #8a8070; }
+        .hint kbd {
+            background: rgba(0,0,0,0.03); padding: 2px 6px; border-radius: 4px; font-size: 10px;
+            border: 1px solid var(--border-subtle); font-family: inherit;
+        }
+        body.dark-mode .hint kbd { background: rgba(255,255,255,0.06); }
+
+        .toast {
+            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(16px);
+            background: var(--toast-bg); color: var(--toast-text); padding: 12px 26px; border-radius: 12px;
+            font-size: 13px; opacity: 0; pointer-events: none; transition: all 0.4s; z-index: 9999;
+            backdrop-filter: blur(8px);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .save-dot {
+            position: fixed; top: 14px; right: 14px; z-index: 100; width: 7px; height: 7px;
+            border-radius: 50%; background: #27ae60; opacity: 0; transition: opacity 0.3s;
+        }
+        .save-dot.show { opacity: 1; }
+        .save-dot.saving { background: #f39c12; animation: pulse 1s infinite; }
+
+        .upload-font-btn {
+            padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: #999; font-size: 12px; cursor: pointer;
+            display: flex; align-items: center; gap: 5px; transition: all 0.3s; white-space: nowrap;
+        }
+        .upload-font-btn:hover { background: var(--btn-hover-bg); color: #666; }
+        .upload-font-btn input { display: none; }
+
+        .font-progress-overlay {
+            position: fixed; inset: 0; z-index: 99999;
+            background: rgba(240,235,227,0.88); backdrop-filter: blur(10px);
+            display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        }
+        body.dark-mode .font-progress-overlay { background: rgba(20,18,15,0.92); }
+        .font-progress-overlay.show { display: flex; }
+        .font-progress-overlay .fp-title { font-size: 16px; color: var(--accent); font-weight: 500; }
+        .font-progress-overlay .fp-bar-wrap { width: 240px; height: 6px; background: rgba(0,0,0,0.06); border-radius: 3px; overflow: hidden; }
+        .font-progress-overlay .fp-bar { height: 100%; width: 0%; background: var(--accent-soft); border-radius: 3px; transition: width 0.3s ease; }
+        .font-progress-overlay .fp-info { font-size: 12px; color: #aaa; }
+
+        .share-panel {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+            background: var(--dropdown-bg); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md); box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            padding: 24px; z-index: 100001; display: none; min-width: 320px; max-width: 90vw;
+            opacity: 0; transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+        }
+        .share-panel.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        .share-panel h3 {
+            font-size: 16px; color: var(--text); margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .share-panel .share-url-wrap {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        .share-panel .share-url-wrap input {
+            flex: 1; padding: 10px 14px; border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm); background: var(--input-bg);
+            color: var(--text); font-size: 13px; font-family: monospace;
+            outline: none;
+        }
+        .share-panel .share-url-wrap input:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(139,115,85,0.08);
+        }
+        .share-panel .share-url-wrap button {
+            padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--btn-bg); color: var(--text); cursor: pointer;
+            font-size: 13px; white-space: nowrap; transition: all 0.2s;
+        }
+        .share-panel .share-url-wrap button:hover { background: var(--btn-hover-bg); }
+        .share-panel .share-url-wrap button.copied {
+            background: rgba(39,174,96,0.15); color: #27ae60; border-color: rgba(39,174,96,0.3);
+        }
+        .share-panel .share-info {
+            font-size: 12px; color: #aaa; line-height: 1.6;
+        }
+        .share-panel .share-close {
+            position: absolute; top: 12px; right: 12px;
+            width: 28px; height: 28px; border-radius: 50%;
+            border: none; background: transparent; color: #aaa;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 18px; transition: all 0.2s;
+        }
+        .share-panel .share-close:hover { background: var(--btn-bg); color: var(--text); }
+
+        .share-backdrop {
+            position: fixed; inset: 0; z-index: 100000;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+            display: none; opacity: 0; transition: opacity 0.3s;
+        }
+        .share-backdrop.show { display: block; opacity: 1; }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(14px) rotate(-1deg); } to { opacity: 1; transform: translateY(0) rotate(-0.3deg); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes pulse-warn { 0%,100% { box-shadow: 0 0 0 0 rgba(220,80,60,0.25); } 50% { box-shadow: 0 0 0 8px rgba(220,80,60,0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width:480px) {
+            body { padding: 24px 12px 36px; }
+            .header h1 { font-size: 22px; letter-spacing: 12px; }
+            .note-inner { padding: 18px 18px 10px; }
+            textarea { min-height: 160px; font-size: 15px; }
+            .note-footer { padding: 0 18px 14px; gap: 10px; }
+            .footer-left { gap: 8px; }
+            .export-btn, .share-btn { padding: 7px 14px; font-size: 12px; }
+            .tool-btn { width: 30px; height: 30px; }
+            .color-panel { grid-template-columns: repeat(5, 1fr); }
+            .share-panel { min-width: 280px; padding: 18px; }
+        }
+    </style>
 </head>
 <body>
-<div class="save-dot" id="saveDot"></div>
+<div class="save-dot" id="saveDot" aria-hidden="true"></div>
 
-<!-- 字体加载进度覆盖层 -->
-<div class="font-progress-overlay" id="fontProgressOverlay">
-  <div class="fp-title" id="fpTitle">正在加载字体…</div>
-  <div class="fp-bar-wrap"><div class="fp-bar" id="fpBar"></div></div>
-  <div class="fp-info" id="fpInfo">处理中…</div>
+<div class="font-progress-overlay" id="fontProgressOverlay" aria-hidden="true">
+    <div class="fp-title" id="fpTitle">正在加载字体…</div>
+    <div class="fp-bar-wrap"><div class="fp-bar" id="fpBar"></div></div>
+    <div class="fp-info" id="fpInfo">处理中…</div>
+</div>
+
+<!-- Image preview overlay -->
+<div class="img-preview-overlay" id="imgPreviewOverlay" aria-hidden="true">
+    <button class="img-close" id="imgPreviewClose" aria-label="关闭预览">×</button>
+    <img id="imgPreviewImg" src="" alt="预览图片">
+</div>
+
+<!-- Share backdrop -->
+<div class="share-backdrop" id="shareBackdrop"></div>
+
+<!-- Share panel -->
+<div class="share-panel" id="sharePanel" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+    <button class="share-close" id="shareClose" aria-label="关闭分享面板">×</button>
+    <h3 id="shareTitle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        分享便签
+    </h3>
+    <div class="share-url-wrap">
+        <input type="text" id="shareUrlInput" readonly aria-label="分享链接">
+        <button id="shareCopyBtn">复制链接</button>
+    </div>
+    <div class="share-info">
+        链接已包含当前便签的全部内容（文字、图片、样式设置）。<br>
+        他人打开链接即可查看完全一致的便签。
+    </div>
 </div>
 
 <div class="header">
-  <h1>便签</h1>
-  <p>2.1.0</p>
+    <h1>便签 · MEMO-PAPER</h1>
+    <p>3.0.0</p>
 </div>
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
-  <div class="tape"></div>
-  <div class="paper-texture lines" id="paperTexture"></div>
-  <div class="note-inner">
-    <div class="toolbar">
-      <div class="custom-select" id="fontSelectWrap">
-        <div class="select-trigger" id="fontTrigger" tabindex="0">
-          <span id="fontLabel">系统默认</span>
-          <span class="arrow"></span>
+    <div class="tape" aria-hidden="true"></div>
+    <div class="paper-texture lines" id="paperTexture" aria-hidden="true"></div>
+    <div class="note-inner">
+        <div class="toolbar" id="toolbar" role="toolbar" aria-label="便签工具栏">
+            <div class="toolbar-group">
+                <div class="custom-select" id="fontSelectWrap">
+                    <div class="select-trigger" id="fontTrigger" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-label="选择字体">
+                        <span id="fontLabel">系统默认</span>
+                        <span class="arrow" aria-hidden="true"></span>
+                    </div>
+                    <ul class="select-dropdown" id="fontDropdown" role="listbox" aria-label="字体列表"></ul>
+                </div>
+                <button class="tool-btn" id="lockBtn" title="锁定/解锁便签" aria-label="锁定或解锁便签" aria-pressed="false">
+                    <svg id="lockIconUnlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                    </svg>
+                    <svg id="lockIconLocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;" aria-hidden="true">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="darkModeBtn" title="深色/浅色模式" aria-label="切换深色或浅色模式" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"/>
+                        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="toolbar-spacer"></div>
+            <div class="toolbar-group">
+                <div class="color-pick-btn" id="colorPickBtn" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" aria-label="选择便签颜色">
+                    <span class="current-color-block" id="currentColorBlock" aria-hidden="true"></span>
+                    <span class="color-label" id="colorLabel">颜色</span>
+                    <span class="arrow" aria-hidden="true"></span>
+                </div>
+                <div class="color-panel" id="colorPanel" role="dialog" aria-label="颜色选择面板" aria-modal="false"></div>
+
+                <span class="tool-label" id="paperLabel">纸张</span>
+                <div class="paper-modes" id="paperModes" role="radiogroup" aria-labelledby="paperLabel">
+                    <button class="paper-mode-btn active" data-mode="lines" title="横线" role="radio" aria-checked="true" aria-label="横线纸张">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
+                    </button>
+                    <button class="paper-mode-btn" data-mode="grid" title="方格" role="radio" aria-checked="false" aria-label="方格纸张">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                    </button>
+                    <button class="paper-mode-btn" data-mode="blank" title="空白" role="radio" aria-checked="false" aria-label="空白纸张">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                    </button>
+                </div>
+            </div>
+            <button class="settings-btn" id="settingsBtn" title="设置" aria-label="打开设置面板" aria-expanded="false">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>设置</span>
+            </button>
         </div>
-        <ul class="select-dropdown" id="fontDropdown"></ul>
-      </div>
 
-      <div class="tool-group">
-        <span class="tool-label">颜色</span>
-        <div class="color-dots" id="colorDots">
-          <div class="color-dot active" data-color="yellow" title="暖黄"></div>
-          <div class="color-dot" data-color="pink" title="柔粉"></div>
-          <div class="color-dot" data-color="blue" title="淡蓝"></div>
-          <div class="color-dot" data-color="green" title="薄荷"></div>
-          <div class="color-dot" data-color="purple" title="浅紫"></div>
-          <div class="color-dot" data-color="orange" title="暖橙"></div>
+        <div class="settings-panel" id="settingsPanel">
+            <div class="setting-item">
+                <label for="fontSizeSlider">字号</label>
+                <input type="range" id="fontSizeSlider" min="14" max="28" value="16" step="1" aria-label="字号">
+                <span class="val" id="fontSizeValue" aria-live="polite">16</span>
+            </div>
+            <div class="setting-item">
+                <label for="lineHeightSlider">行距</label>
+                <input type="range" id="lineHeightSlider" min="1.4" max="2.4" value="1.75" step="0.05" aria-label="行距">
+                <span class="val" id="lineHeightValue" aria-live="polite">1.75</span>
+            </div>
+            <div class="setting-item global-font-setting">
+                <label id="globalFontSettingLabel">
+                    <input type="checkbox" id="globalFontCheckbox" aria-label="全局应用字体">
+                    <span>全局字体</span>
+                </label>
+            </div>
         </div>
-      </div>
 
-      <div class="tool-group">
-        <span class="tool-label">纸张</span>
-        <div class="paper-modes" id="paperModes">
-          <button class="paper-mode-btn active" data-mode="lines" title="横线">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="21" y2="8"/><line x1="3" y1="16" x2="21" y2="16"/></svg>
-          </button>
-          <button class="paper-mode-btn" data-mode="grid" title="方格">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-          </button>
-          <button class="paper-mode-btn" data-mode="blank" title="空白">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-          </button>
+        <div class="editor-wrap" id="editorWrap">
+            <div class="drag-hint" id="dragHint" aria-hidden="true"><span>松开以粘贴图片</span></div>
+            <textarea id="editor" placeholder="写点什么…（支持 Ctrl+V 粘贴图片或拖拽图片）" aria-label="便签内容"></textarea>
+            <div class="lock-overlay" id="lockOverlay" aria-hidden="true">
+                <div class="lock-badge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>已锁定</span>
+                </div>
+            </div>
+            <div class="note-count" id="noteCount" title="点击切换统计类型" role="button" tabindex="0" aria-label="字数统计">
+                <span id="countValue" aria-live="polite">0</span>
+                <span class="count-icon" id="countLabel">字</span>
+            </div>
         </div>
-      </div>
 
-      <button class="settings-btn" id="settingsBtn" title="排版设置">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span>排版</span>
-      </button>
+        <!-- Image gallery -->
+        <div class="image-gallery" id="imageGallery" aria-label="便签图片"></div>
     </div>
 
-    <div class="settings-panel" id="settingsPanel">
-      <div class="setting-item">
-        <label>字号</label>
-        <input type="range" id="fontSizeSlider" min="14" max="28" value="16" step="1">
-        <span class="val" id="fontSizeValue">16</span>
-      </div>
-      <div class="setting-item">
-        <label>行距</label>
-        <input type="range" id="lineHeightSlider" min="1.4" max="2.4" value="1.75" step="0.05">
-        <span class="val" id="lineHeightValue">1.75</span>
-      </div>
+    <div class="note-footer">
+        <div class="footer-left">
+            <label class="toggle-btn">
+                <input type="checkbox" id="dateToggle" aria-label="显示日期">
+                <span>显示日期</span>
+            </label>
+            <div class="align-btns" id="alignBtns" role="radiogroup" aria-label="文本对齐">
+                <button class="align-btn active" data-align="left" title="左对齐" role="radio" aria-checked="true" aria-label="左对齐">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="17" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+                </button>
+                <button class="align-btn" data-align="center" title="居中" role="radio" aria-checked="false" aria-label="居中对齐">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="18" y1="14" x2="6" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+                </button>
+                <button class="align-btn" data-align="right" title="右对齐" role="radio" aria-checked="false" aria-label="右对齐">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="7" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+                </button>
+            </div>
+            <button class="footer-icon-btn" id="clearBtn" title="清空内容" aria-label="清空内容">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+            </button>
+            <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 导出</span>
+            <span class="saved-time" id="savedTime" aria-live="polite"></span>
+        </div>
+        <div class="footer-right">
+            <button class="share-btn" id="shareBtn" aria-label="生成分享链接">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                分享
+            </button>
+            <button class="export-btn" id="exportBtn" aria-label="导出为图片">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                导出图片
+            </button>
+        </div>
     </div>
-
-    <div class="font-error" id="fontError"></div>
-
-    <div class="editor-wrap">
-      <textarea id="editor" placeholder="在此输入文字…"></textarea>
-      <span class="note-count"><span id="count">0</span> 字</span>
-    </div>
-  </div>
-
-  <div class="note-footer">
-    <div class="footer-left">
-      <label class="toggle-btn">
-        <input type="checkbox" id="dateToggle">
-        <span>显示日期</span>
-      </label>
-      <span class="hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 导出</span>
-    </div>
-    <button class="export-btn" id="exportBtn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      导出图片
-    </button>
-  </div>
 </div>
 
-<div class="toast" id="toast"><span id="toastText"></span></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"><span id="toastText"></span></div>
 
 <script>
-  (() => {
-    // ---------- 内置字体 ----------
-    const BUILTIN_FONTS = [
-      { name: '系统默认', family: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', type: 'system' },
-      { name: '宋体', family: 'SimSun, "Songti SC", serif', type: 'fallback' },
-      { name: '黑体', family: 'SimHei, "Heiti SC", sans-serif', type: 'fallback' },
-      { name: '楷体', family: 'KaiTi, "Kaiti SC", serif', type: 'fallback' },
-      { name: '仿宋', family: 'FangSong, "Fangsong SC", serif', type: 'fallback' }
-    ];
+    (() => {
+        var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
 
-    // ---------- 全局状态 ----------
-    const state = {
-      fonts: [...BUILTIN_FONTS],
-      selectedFontIndex: 0,
-      focusedIndex: 0,
-      isDropdownOpen: false,
-      loadedCustomFonts: new Map(), // src (blobUrl) -> { familyName, fontObj }
-      currentColor: 'yellow',
-      paperMode: 'lines',
-      fontSize: 16,
-      lineHeight: 1.75,
-      showDate: false,
-      settingsOpen: false,
-      saveTimer: null,
-      isSaving: false,
-      isInitialLoad: true
-    };
+        "use strict";
 
-    const colors = {
-      yellow: '#fef9e7', pink: '#ffe4e1', blue: '#e0f0ff',
-      green: '#e8f5e9', purple: '#f3e5f5', orange: '#fff3e0'
-    };
+        const BUILTIN_FONTS = [
+            { name: '系统默认', family: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', type: 'system' },
+            { name: '宋体', family: 'SimSun, "Songti SC", serif', type: 'fallback' },
+            { name: '黑体', family: 'SimHei, "Heiti SC", sans-serif', type: 'fallback' },
+            { name: '楷体', family: 'KaiTi, "Kaiti SC", serif', type: 'fallback' },
+            { name: '仿宋', family: 'FangSong, "Fangsong SC", serif', type: 'fallback' }
+        ];
 
-    // DOM 元素
-    const els = {
-      saveDot: document.getElementById('saveDot'),
-      fontTrigger: document.getElementById('fontTrigger'),
-      fontDropdown: document.getElementById('fontDropdown'),
-      fontLabel: document.getElementById('fontLabel'),
-      fontSelectWrap: document.getElementById('fontSelectWrap'),
-      editor: document.getElementById('editor'),
-      count: document.getElementById('count'),
-      toast: document.getElementById('toast'),
-      toastText: document.getElementById('toastText'),
-      fontError: document.getElementById('fontError'),
-      dateToggle: document.getElementById('dateToggle'),
-      stickyNote: document.getElementById('stickyNote'),
-      paperTexture: document.getElementById('paperTexture'),
-      fontSizeSlider: document.getElementById('fontSizeSlider'),
-      fontSizeValue: document.getElementById('fontSizeValue'),
-      lineHeightSlider: document.getElementById('lineHeightSlider'),
-      lineHeightValue: document.getElementById('lineHeightValue'),
-      settingsBtn: document.getElementById('settingsBtn'),
-      settingsPanel: document.getElementById('settingsPanel'),
-      exportBtn: document.getElementById('exportBtn'),
-      fontProgressOverlay: document.getElementById('fontProgressOverlay'),
-      fpTitle: document.getElementById('fpTitle'),
-      fpBar: document.getElementById('fpBar'),
-      fpInfo: document.getElementById('fpInfo')
-    };
+        const DEFAULT_BODY_FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        const STORAGE_KEY = 'memo_v14';
+        const CURRENT_VERSION = 14;
+        const MAX_IMAGES = 20;
+        const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
-    // 工具函数
-    const showToast = (msg) => {
-      els.toastText.textContent = msg;
-      els.toast.classList.add('show');
-      clearTimeout(els._toastTimer);
-      els._toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
-    };
+        const colorsLight = {
+            yellow: '#fef9e7', pink: '#ffe4e1', blue: '#e0f0ff', green: '#e8f5e9',
+            purple: '#f3e5f5', orange: '#fff3e0', red: '#ffe0e0', teal: '#e0f4f4',
+            gray: '#f5f5f5', cream: '#fffdd0', lavender: '#f0e6f6', mint: '#e6f9f0'
+        };
+        const colorsDark = {
+            yellow: '#3d3828', pink: '#3d2828', blue: '#282e3d', green: '#283d2c',
+            purple: '#32283d', orange: '#3d3228', red: '#3d2828', teal: '#283d3d',
+            gray: '#2a2a2a', cream: '#3d3a28', lavender: '#32283d', mint: '#283d30'
+        };
+        const colorNames = {
+            yellow: '暖黄', pink: '柔粉', blue: '淡蓝', green: '薄荷', purple: '浅紫',
+            orange: '暖橙', red: '浅红', teal: '青绿', gray: '浅灰', cream: '奶油',
+            lavender: '薰衣草', mint: '薄荷绿'
+        };
 
-    const showFontProgress = (show, title, pct, info) => {
-      if (!show) {
-        els.fontProgressOverlay.classList.remove('show');
-        return;
-      }
-      els.fontProgressOverlay.classList.add('show');
-      if (title) els.fpTitle.textContent = title;
-      if (pct !== undefined) els.fpBar.style.width = pct + '%';
-      if (info) els.fpInfo.textContent = info;
-    };
+        const state = {
+            fonts: [...BUILTIN_FONTS], selectedFontIndex: 0, focusedIndex: 0, isDropdownOpen: false,
+            loadedCustomFonts: new Map(), currentColor: 'yellow', paperMode: 'lines',
+            fontSize: 16, lineHeight: 1.75, showDate: false, settingsOpen: false,
+            globalFontEnabled: false, darkMode: false, locked: false, textAlign: 'left',
+            countMode: 0, clearConfirmTimer: null, saveTimer: null, isSaving: false,
+            isInitialLoad: true, lastSavedTime: null, colorPanelOpen: false,
+            userManuallyToggledDark: false, undoStack: [], undoTimer: null,
+            images: [] // Array of { id, dataUrl, name }
+        };
 
-    // 确保字体列表有效
-    const ensureValidFonts = () => {
-      if (!state.fonts || state.fonts.length === 0) {
-        state.fonts = [...BUILTIN_FONTS];
-        state.selectedFontIndex = 0;
-      }
-      if (state.selectedFontIndex >= state.fonts.length) {
-        state.selectedFontIndex = 0;
-      }
-    };
+        const getCurrentColors = () => state.darkMode ? colorsDark : colorsLight;
 
-    // 分组
-    const groupFonts = (fonts) => {
-      const groups = {};
-      fonts.forEach((font, idx) => {
-        const name = font.name || '';
-        let category = '其他';
-        if (font.type === 'system' || font.type === 'fallback') {
-          category = '系统字体';
-        } else if (font.type === 'upload') {
-          category = '我的字体';
-        } else if (name.includes('·')) {
-          category = name.split('·')[0].trim();
-        } else if (/[\u4e00-\u9fa5]/.test(name)) {
-          category = '中文字体';
-        }
-        if (!groups[category]) groups[category] = [];
-        groups[category].push({ ...font, originalIndex: idx });
-      });
-      return groups;
-    };
+        const els = {
+            saveDot: document.getElementById('saveDot'),
+            fontTrigger: document.getElementById('fontTrigger'),
+            fontDropdown: document.getElementById('fontDropdown'),
+            fontLabel: document.getElementById('fontLabel'),
+            fontSelectWrap: document.getElementById('fontSelectWrap'),
+            editor: document.getElementById('editor'),
+            countValue: document.getElementById('countValue'),
+            countLabel: document.getElementById('countLabel'),
+            noteCount: document.getElementById('noteCount'),
+            toast: document.getElementById('toast'),
+            toastText: document.getElementById('toastText'),
+            dateToggle: document.getElementById('dateToggle'),
+            stickyNote: document.getElementById('stickyNote'),
+            paperTexture: document.getElementById('paperTexture'),
+            fontSizeSlider: document.getElementById('fontSizeSlider'),
+            fontSizeValue: document.getElementById('fontSizeValue'),
+            lineHeightSlider: document.getElementById('lineHeightSlider'),
+            lineHeightValue: document.getElementById('lineHeightValue'),
+            settingsBtn: document.getElementById('settingsBtn'),
+            settingsPanel: document.getElementById('settingsPanel'),
+            exportBtn: document.getElementById('exportBtn'),
+            fontProgressOverlay: document.getElementById('fontProgressOverlay'),
+            fpTitle: document.getElementById('fpTitle'), fpBar: document.getElementById('fpBar'), fpInfo: document.getElementById('fpInfo'),
+            darkModeBtn: document.getElementById('darkModeBtn'),
+            globalFontCheckbox: document.getElementById('globalFontCheckbox'),
+            globalFontSettingLabel: document.getElementById('globalFontSettingLabel'),
+            clearBtn: document.getElementById('clearBtn'),
+            lockBtn: document.getElementById('lockBtn'),
+            lockIconUnlocked: document.getElementById('lockIconUnlocked'),
+            lockIconLocked: document.getElementById('lockIconLocked'),
+            alignBtns: document.getElementById('alignBtns'),
+            savedTime: document.getElementById('savedTime'),
+            colorPickBtn: document.getElementById('colorPickBtn'),
+            colorPanel: document.getElementById('colorPanel'),
+            currentColorBlock: document.getElementById('currentColorBlock'),
+            colorLabel: document.getElementById('colorLabel'),
+            lockOverlay: document.getElementById('lockOverlay'),
+            toolbar: document.getElementById('toolbar'),
+            editorWrap: document.getElementById('editorWrap'),
+            dragHint: document.getElementById('dragHint'),
+            imageGallery: document.getElementById('imageGallery'),
+            imgPreviewOverlay: document.getElementById('imgPreviewOverlay'),
+            imgPreviewImg: document.getElementById('imgPreviewImg'),
+            imgPreviewClose: document.getElementById('imgPreviewClose'),
+            shareBtn: document.getElementById('shareBtn'),
+            sharePanel: document.getElementById('sharePanel'),
+            shareBackdrop: document.getElementById('shareBackdrop'),
+            shareClose: document.getElementById('shareClose'),
+            shareUrlInput: document.getElementById('shareUrlInput'),
+            shareCopyBtn: document.getElementById('shareCopyBtn')
+        };
 
-    // ---------- 构建下拉菜单 ----------
-    const buildDropdown = () => {
-      ensureValidFonts();
-      els.fontDropdown.innerHTML = '';
+        const showToast = (msg) => {
+            els.toastText.textContent = msg;
+            els.toast.classList.add('show');
+            clearTimeout(els._toastTimer);
+            els._toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+        };
 
-      // 搜索框
-      const searchWrap = document.createElement('div');
-      searchWrap.className = 'font-search';
-      const searchInput = document.createElement('input');
-      searchInput.type = 'text';
-      searchInput.placeholder = '搜索字体...';
-      searchInput.addEventListener('input', (e) => filterFonts(e.target.value));
-      searchInput.addEventListener('click', (e) => e.stopPropagation());
-      searchInput.addEventListener('keydown', (e) => {
-        if (['ArrowDown','ArrowUp','Enter'].includes(e.key)) e.stopPropagation();
-      });
-      searchWrap.appendChild(searchInput);
-      els.fontDropdown.appendChild(searchWrap);
+        const showFontProgress = (show, title, pct, info) => {
+            if (!show) { els.fontProgressOverlay.classList.remove('show'); return; }
+            els.fontProgressOverlay.classList.add('show');
+            if (title) els.fpTitle.textContent = title;
+            if (pct !== undefined) els.fpBar.style.width = pct + '%';
+            if (info) els.fpInfo.textContent = info;
+        };
 
-      // 上传按钮
-      const uploadWrap = document.createElement('div');
-      uploadWrap.style.cssText = 'padding: 6px 7px; border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 3px;';
-      const uploadLabel = document.createElement('label');
-      uploadLabel.className = 'upload-font-btn';
-      uploadLabel.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>上传字体文件';
-      const uploadInput = document.createElement('input');
-      uploadInput.type = 'file';
-      uploadInput.accept = '.ttf,.otf,.woff,.woff2';
-      uploadInput.multiple = true;
-      uploadInput.addEventListener('change', (e) => handleFontUpload(e.target.files));
-      uploadLabel.appendChild(uploadInput);
-      uploadWrap.appendChild(uploadLabel);
-      els.fontDropdown.appendChild(uploadWrap);
+        const ensureValidFonts = () => {
+            if (!state.fonts?.length) { state.fonts = [...BUILTIN_FONTS]; state.selectedFontIndex = 0; }
+            if (state.selectedFontIndex >= state.fonts.length) state.selectedFontIndex = 0;
+        };
 
-      const groups = groupFonts(state.fonts);
-      const groupOrder = ['系统字体', '我的字体', '中文字体', '英-衬线', '英-无衬线', '英-手写', '英-装饰', '英-等宽', '英-其他', '其他'];
-      let globalIndex = 0;
+        const groupFonts = (fonts) => {
+            const groups = {};
+            fonts.forEach((font, idx) => {
+                const name = font.name || '';
+                let cat = '其他';
+                if (font.type === 'system' || font.type === 'fallback') cat = '系统字体';
+                else if (font.type === 'upload') cat = '我的字体';
+                else if (name.includes('·')) cat = name.split('·')[0].trim();
+                else if (/[\u4e00-\u9fa5]/.test(name)) cat = '中文字体';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push({ ...font, originalIndex: idx });
+            });
+            return groups;
+        };
 
-      const categories = [];
-      groupOrder.forEach(cat => {
-        if (groups[cat] && groups[cat].length > 0) categories.push(cat);
-      });
-      Object.keys(groups).forEach(cat => {
-        if (!categories.includes(cat) && groups[cat] && groups[cat].length > 0) {
-          categories.push(cat);
-        }
-      });
+        const getSelectedFontFamily = () => {
+            const font = state.fonts[state.selectedFontIndex];
+            if (!font) return DEFAULT_BODY_FONT;
+            if (font.type === 'upload' && font.src) {
+                const loaded = state.loadedCustomFonts.get(font.src);
+                return loaded ? `"${loaded.familyName}"` : font.family;
+            }
+            return font.family;
+        };
 
-      categories.forEach(cat => {
-        const label = document.createElement('div');
-        label.className = 'group-label';
-        label.textContent = cat + ' (' + groups[cat].length + ')';
-        els.fontDropdown.appendChild(label);
+        const applyGlobalFont = () => {
+            const family = state.globalFontEnabled ? getSelectedFontFamily() : DEFAULT_BODY_FONT;
+            document.body.style.fontFamily = family;
+            document.documentElement.style.setProperty('--body-font', family);
+        };
 
-        groups[cat].forEach(font => {
-          const li = document.createElement('li');
-          const displayName = font.name.includes('·') ? font.name.split('·').slice(1).join('·').trim() : font.name;
-          li.textContent = displayName;
-          li.dataset.index = font.originalIndex;
-          li.dataset.globalIndex = globalIndex;
-          li.title = font.name + (font.type === 'upload' ? ' (已上传)' : '');
-          if (font.originalIndex === state.selectedFontIndex) li.classList.add('selected');
-          els.fontDropdown.appendChild(li);
-          globalIndex++;
+        const toggleGlobalFont = (force) => {
+            state.globalFontEnabled = force !== undefined ? force : !state.globalFontEnabled;
+            els.globalFontCheckbox.checked = state.globalFontEnabled;
+            els.globalFontSettingLabel.classList.toggle('active-label', state.globalFontEnabled);
+            updateDropdownGlobalToggle();
+            applyGlobalFont();
+            scheduleSave();
+            showToast(state.globalFontEnabled ? '全局字体已开启' : '全局字体已关闭');
+        };
+
+        const updateDropdownGlobalToggle = () => {
+            const row = els.fontDropdown.querySelector('.global-font-row-top');
+            if (row) row.querySelector('.gf-toggle')?.classList.toggle('active', state.globalFontEnabled);
+        };
+
+        const toggleDarkMode = (force) => {
+            state.darkMode = force !== undefined ? force : !state.darkMode;
+            document.body.classList.toggle('dark-mode', state.darkMode);
+            els.darkModeBtn.classList.toggle('active', state.darkMode);
+            els.darkModeBtn.setAttribute('aria-pressed', state.darkMode);
+            updateNoteColor();
+            updateColorPanelSelection();
+            scheduleSave();
+            showToast(state.darkMode ? '已切换为深色模式' : '已切换为浅色模式');
+        };
+
+        const toggleLock = () => {
+            state.locked = !state.locked;
+            els.editor.readOnly = state.locked;
+            els.editor.classList.toggle('locked', state.locked);
+            els.lockBtn.classList.toggle('active', state.locked);
+            els.lockBtn.setAttribute('aria-pressed', state.locked);
+            els.lockIconUnlocked.style.display = state.locked ? 'none' : '';
+            els.lockIconLocked.style.display = state.locked ? '' : 'none';
+            els.stickyNote.classList.toggle('locked-note', state.locked);
+            els.lockOverlay.classList.toggle('show', state.locked);
+            els.toolbar.style.pointerEvents = state.locked ? 'none' : '';
+            els.toolbar.style.opacity = state.locked ? '0.5' : '';
+            scheduleSave();
+            showToast(state.locked ? '便签已锁定' : '便签已解锁');
+        };
+
+        const setTextAlign = (align) => {
+            state.textAlign = align;
+            els.editor.style.textAlign = align;
+            document.querySelectorAll('.align-btn').forEach(b => {
+                const active = b.dataset.align === align;
+                b.classList.toggle('active', active);
+                b.setAttribute('aria-checked', active);
+            });
+            scheduleSave();
+        };
+
+        const updateCount = () => {
+            const text = els.editor.value;
+            let val = 0;
+            if (state.countMode === 0) { val = text.length; els.countLabel.textContent = '字'; }
+            else if (state.countMode === 1) {
+                if (!text.trim()) { val = 0; }
+                else {
+                    const cjkRegex = /[\u4e00-\u9fa5]/g;
+                    const cjkCount = (text.match(cjkRegex) || []).length;
+                    const nonCjk = text.replace(cjkRegex, ' ').trim();
+                    const nonCjkWords = nonCjk ? nonCjk.split(/\s+/).filter(w => w.length > 0).length : 0;
+                    val = cjkCount + nonCjkWords;
+                }
+                els.countLabel.textContent = '词';
+            }
+            else if (state.countMode === 2) { val = text ? text.split('\n').length : 0; els.countLabel.textContent = '行'; }
+            els.countValue.textContent = val;
+        };
+
+        const cycleCountMode = () => {
+            state.countMode = (state.countMode + 1) % 3;
+            updateCount();
+            scheduleSave();
+        };
+
+        const updateLastSavedTime = () => {
+            state.lastSavedTime = Date.now();
+            const d = new Date(state.lastSavedTime);
+            els.savedTime.textContent = `已保存 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+        };
+
+        // ==================== IMAGE HANDLING ====================
+        const renderImageGallery = () => {
+            els.imageGallery.innerHTML = '';
+            state.images.forEach((img, idx) => {
+                const item = document.createElement('div');
+                item.className = 'image-item';
+                item.setAttribute('role', 'button');
+                item.setAttribute('tabindex', '0');
+                item.setAttribute('aria-label', `查看图片 ${img.name || idx + 1}`);
+                item.innerHTML = `
+                    <img src="${img.dataUrl}" alt="${img.name || '便签图片'}" loading="lazy">
+                    <button class="img-remove" data-index="${idx}" aria-label="删除图片" title="删除">×</button>
+                `;
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('img-remove')) return;
+                    openImagePreview(img.dataUrl);
+                });
+                item.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openImagePreview(img.dataUrl); }
+                });
+                const removeBtn = item.querySelector('.img-remove');
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeImage(idx);
+                });
+                els.imageGallery.appendChild(item);
+            });
+        };
+
+        const openImagePreview = (dataUrl) => {
+            els.imgPreviewImg.src = dataUrl;
+            els.imgPreviewOverlay.classList.add('show');
+            els.imgPreviewClose.focus();
+        };
+
+        const closeImagePreview = () => {
+            els.imgPreviewOverlay.classList.remove('show');
+            els.imgPreviewImg.src = '';
+        };
+
+        const removeImage = (idx) => {
+            state.images.splice(idx, 1);
+            renderImageGallery();
+            scheduleSave();
+            showToast('图片已删除');
+        };
+
+        const compressImage = (dataUrl, maxWidth = 1200, quality = 0.85) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let { width, height } = img;
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = dataUrl;
+            });
+        };
+
+        const addImage = async (file) => {
+            if (state.images.length >= MAX_IMAGES) {
+                showToast(`最多支持 ${MAX_IMAGES} 张图片`); return;
+            }
+            if (file.size > MAX_IMAGE_SIZE) {
+                showToast('单张图片不能超过 2MB'); return;
+            }
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                let dataUrl = e.target.result;
+                // Compress if large
+                if (file.size > 500 * 1024) {
+                    dataUrl = await compressImage(dataUrl);
+                }
+                state.images.push({
+                    id: Date.now() + Math.random(),
+                    dataUrl: dataUrl,
+                    name: file.name
+                });
+                renderImageGallery();
+                scheduleSave();
+                showToast('图片已添加');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        const handlePaste = (e) => {
+            if (state.locked) return;
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            let hasImage = false;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    hasImage = true;
+                    const file = item.getAsFile();
+                    if (file) addImage(file);
+                }
+            }
+        };
+
+        const handleDragOver = (e) => {
+            if (state.locked) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            els.dragHint.classList.add('show');
+            els.stickyNote.classList.add('drag-over');
+        };
+
+        const handleDragLeave = (e) => {
+            e.preventDefault();
+            els.dragHint.classList.remove('show');
+            els.stickyNote.classList.remove('drag-over');
+        };
+
+        const handleDrop = (e) => {
+            if (state.locked) return;
+            e.preventDefault();
+            els.dragHint.classList.remove('show');
+            els.stickyNote.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            for (const file of files) {
+                if (file.type.startsWith('image/')) addImage(file);
+            }
+        };
+
+        // ==================== SHARE LINK ====================
+        const compressImageForShare = (dataUrl, maxWidth = 300, quality = 0.5) => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let { width, height } = img;
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = () => resolve(dataUrl);
+                img.src = dataUrl;
+            });
+        };
+
+const generateShareData = async () => {
+            showToast('正在压缩…');
+            const compressedImages = await Promise.all(
+                state.images.map(img => compressImageForShare(img.dataUrl))
+            );
+            const data = {
+                v: CURRENT_VERSION,
+                t: els.editor.value,
+                c: state.currentColor,
+                p: state.paperMode,
+                f: state.fontSize,
+                l: state.lineHeight,
+                d: state.showDate,
+                g: state.globalFontEnabled,
+                m: state.darkMode,
+                a: state.textAlign,
+                i: compressedImages.map((d, idx) => ({ d, n: state.images[idx].name }))
+            };
+            const json = JSON.stringify(data);
+            const compressed = LZString.compressToEncodedURIComponent(json);
+            return compressed;
+        };
+
+        const parseShareData = (hash) => {
+            if (!hash) return null;
+            // Try LZString first (new format)
+            try {
+                const decompressed = LZString.decompressFromEncodedURIComponent(hash);
+                if (decompressed) return JSON.parse(decompressed);
+            } catch (e) {}
+            // Fallback: old format (base64 + encodeURIComponent)
+            try {
+                const decoded = decodeURIComponent(atob(hash));
+                return JSON.parse(decoded);
+            } catch (e) {
+                try {
+                    return JSON.parse(atob(hash));
+                } catch (e2) {
+                    return null;
+                }
+            }
+        };
+
+        const openSharePanel = async () => {
+            const hash = await generateShareData();
+            const url = `${window.location.origin}${window.location.pathname}#${hash}`;
+            els.shareUrlInput.value = url;
+            els.sharePanel.classList.add('show');
+            els.shareBackdrop.classList.add('show');
+            els.shareCopyBtn.classList.remove('copied');
+            els.shareCopyBtn.textContent = '复制链接';
+            els.shareCopyBtn.focus();
+        };
+
+        const closeSharePanel = () => {
+            els.sharePanel.classList.remove('show');
+            els.shareBackdrop.classList.remove('show');
+        };
+
+        const copyShareUrl = async () => {
+            try {
+                await navigator.clipboard.writeText(els.shareUrlInput.value);
+                els.shareCopyBtn.classList.add('copied');
+                els.shareCopyBtn.textContent = '已复制!';
+                showToast('链接已复制到剪贴板');
+                setTimeout(() => {
+                    els.shareCopyBtn.classList.remove('copied');
+                    els.shareCopyBtn.textContent = '复制链接';
+                }, 2000);
+            } catch (e) {
+                els.shareUrlInput.select();
+                document.execCommand('copy');
+                showToast('链接已复制');
+            }
+        };
+
+        const loadFromHash = () => {
+            const hash = window.location.hash.slice(1);
+            if (!hash) return false;
+            const data = parseShareData(hash);
+            if (!data) return false;
+
+            // Apply shared data
+            if (data.t !== undefined) els.editor.value = data.t;
+            if (data.c && getCurrentColors()[data.c]) {
+                state.currentColor = data.c;
+                updateColorPanelSelection();
+            }
+            if (data.p) {
+                state.paperMode = data.p;
+                document.querySelectorAll('.paper-mode-btn').forEach(b => {
+                    const active = b.dataset.mode === data.p;
+                    b.classList.toggle('active', active);
+                    b.setAttribute('aria-checked', active);
+                });
+                updatePaperTexture();
+            }
+            if (data.f) { state.fontSize = data.f; els.fontSizeSlider.value = data.f; els.fontSizeValue.textContent = data.f; }
+            if (data.l) { state.lineHeight = data.l; els.lineHeightSlider.value = data.l; els.lineHeightValue.textContent = data.l.toFixed(2); }
+            if (data.d !== undefined) { state.showDate = data.d; els.dateToggle.checked = data.d; }
+            if (data.g !== undefined) state.globalFontEnabled = data.g;
+            if (data.m !== undefined) {
+                state.darkMode = data.m;
+                document.body.classList.toggle('dark-mode', data.m);
+                els.darkModeBtn.classList.toggle('active', data.m);
+                els.darkModeBtn.setAttribute('aria-pressed', data.m);
+            }
+            if (data.a && ['left','center','right'].includes(data.a)) {
+                state.textAlign = data.a;
+                els.editor.style.textAlign = data.a;
+                document.querySelectorAll('.align-btn').forEach(b => {
+                    const active = b.dataset.align === data.a;
+                    b.classList.toggle('active', active);
+                    b.setAttribute('aria-checked', active);
+                });
+            }
+            if (data.i && Array.isArray(data.i)) {
+                state.images = data.i.map(img => ({ id: Date.now() + Math.random(), dataUrl: img.d, name: img.n || '' }));
+                renderImageGallery();
+            }
+
+            updateEditorStyle();
+            updateNoteColor();
+            applyFont(state.selectedFontIndex);
+            updateCount();
+            if (state.globalFontEnabled) applyGlobalFont();
+
+            showToast('已加载分享的便签');
+            return true;
+        };
+
+        // ==================== COLOR PANEL ====================
+        const buildColorPanel = () => {
+            els.colorPanel.innerHTML = '';
+            Object.keys(colorsLight).forEach((color, idx) => {
+                const opt = document.createElement('div');
+                opt.className = 'color-option';
+                opt.dataset.color = color;
+                opt.title = colorNames[color] || color;
+                opt.setAttribute('role', 'option');
+                opt.setAttribute('aria-selected', 'false');
+                opt.setAttribute('tabindex', '0');
+                opt.setAttribute('data-index', idx);
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectColor(color);
+                    toggleColorPanel(false);
+                });
+                opt.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectColor(color);
+                        toggleColorPanel(false);
+                        els.colorPickBtn.focus();
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        const next = els.colorPanel.querySelector(`[data-index="${idx + 1}"]`);
+                        if (next) next.focus();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        const prev = els.colorPanel.querySelector(`[data-index="${idx - 1}"]`);
+                        if (prev) prev.focus();
+                    } else if (e.key === 'Escape') {
+                        toggleColorPanel(false);
+                        els.colorPickBtn.focus();
+                    }
+                });
+                els.colorPanel.appendChild(opt);
+            });
+            updateColorPanelSelection();
+        };
+
+        const updateColorPanelSelection = () => {
+            els.colorPanel.querySelectorAll('.color-option').forEach(opt => {
+                const active = opt.dataset.color === state.currentColor;
+                opt.classList.toggle('active', active);
+                opt.setAttribute('aria-selected', active);
+            });
+            els.currentColorBlock.style.background = getCurrentColors()[state.currentColor];
+            els.colorLabel.textContent = colorNames[state.currentColor] || '颜色';
+        };
+
+        const positionPanel = (trigger, panel, offset = 8) => {
+            const rect = trigger.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            let top = rect.bottom + offset;
+            let left = Math.max(8, rect.left);
+            if (top + panelRect.height > window.innerHeight - 8) {
+                top = rect.top - panelRect.height - offset;
+            }
+            if (left + panelRect.width > window.innerWidth - 8) {
+                left = window.innerWidth - panelRect.width - 8;
+            }
+            panel.style.top = top + 'px';
+            panel.style.left = left + 'px';
+        };
+
+        const toggleColorPanel = (force) => {
+            state.colorPanelOpen = force !== undefined ? force : !state.colorPanelOpen;
+            if (state.colorPanelOpen) {
+                if (els.colorPanel.parentElement !== document.body) document.body.appendChild(els.colorPanel);
+                els.colorPanel.classList.add('show');
+                requestAnimationFrame(() => {
+                    positionPanel(els.colorPickBtn, els.colorPanel);
+                    const active = els.colorPanel.querySelector('.color-option.active');
+                    if (active) active.focus();
+                    else els.colorPanel.querySelector('.color-option')?.focus();
+                });
+                els.colorPickBtn.setAttribute('aria-expanded', 'true');
+            } else {
+                els.colorPanel.classList.remove('show');
+                try { els.colorPickBtn.parentNode.appendChild(els.colorPanel); } catch(e) {}
+                els.colorPickBtn.setAttribute('aria-expanded', 'false');
+            }
+        };
+
+        const selectColor = (color) => {
+            state.currentColor = color;
+            updateColorPanelSelection();
+            updateNoteColor();
+            scheduleSave();
+        };
+
+        const updateNoteColor = () => {
+            els.stickyNote.style.background = getCurrentColors()[state.currentColor];
+        };
+
+        // ==================== DROPDOWN ====================
+        const buildDropdown = () => {
+            ensureValidFonts();
+            els.fontDropdown.innerHTML = '';
+            const globalRow = document.createElement('div');
+            globalRow.className = 'global-font-row-top';
+            globalRow.setAttribute('role', 'button');
+            globalRow.setAttribute('tabindex', '0');
+            globalRow.innerHTML = `
+                <span class="gf-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    全局应用字体
+                </span>
+                <span class="gf-toggle${state.globalFontEnabled ? ' active' : ''}"></span>
+            `;
+            globalRow.addEventListener('click', (e) => { e.stopPropagation(); toggleGlobalFont(); });
+            globalRow.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGlobalFont(); }
+            });
+            els.fontDropdown.appendChild(globalRow);
+
+            const searchWrap = document.createElement('div');
+            searchWrap.className = 'font-search';
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text'; searchInput.placeholder = '搜索字体...';
+            searchInput.setAttribute('aria-label', '搜索字体');
+            searchInput.addEventListener('input', (e) => filterFonts(e.target.value));
+            searchInput.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const items = getVisibleItems();
+                    if (items.length) { state.focusedIndex = 0; updateFocus(); items[0].focus(); }
+                }
+            });
+            searchWrap.appendChild(searchInput);
+            els.fontDropdown.appendChild(searchWrap);
+
+            const uploadWrap = document.createElement('div');
+            uploadWrap.style.cssText = 'padding:6px 8px;border-bottom:1px solid var(--border-subtle);margin-bottom:4px;';
+            const uploadLabel = document.createElement('label');
+            uploadLabel.className = 'upload-font-btn';
+            uploadLabel.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>上传字体';
+            const uploadInput = document.createElement('input');
+            uploadInput.type = 'file'; uploadInput.accept = '.ttf,.otf,.woff,.woff2'; uploadInput.multiple = true;
+            uploadInput.setAttribute('aria-label', '上传字体文件');
+            uploadInput.addEventListener('change', (e) => handleFontUpload(e.target.files));
+            uploadLabel.appendChild(uploadInput);
+            uploadWrap.appendChild(uploadLabel);
+            els.fontDropdown.appendChild(uploadWrap);
+
+            const groups = groupFonts(state.fonts);
+            const groupOrder = ['系统字体','我的字体','中文字体','英-衬线','英-无衬线','英-手写','英-装饰','英-等宽','英-其他','其他'];
+            const cats = [];
+            groupOrder.forEach(c => { if (groups[c]?.length) cats.push(c); });
+            Object.keys(groups).forEach(c => { if (!cats.includes(c) && groups[c]?.length) cats.push(c); });
+
+            let gIdx = 0;
+            cats.forEach(cat => {
+                const label = document.createElement('div');
+                label.className = 'group-label'; label.textContent = `${cat} (${groups[cat].length})`;
+                label.setAttribute('role', 'presentation');
+                els.fontDropdown.appendChild(label);
+                groups[cat].forEach(font => {
+                    const li = document.createElement('li');
+                    li.textContent = font.name.includes('·') ? font.name.split('·').slice(1).join('·').trim() : font.name;
+                    li.dataset.index = font.originalIndex; li.dataset.globalIndex = gIdx;
+                    li.setAttribute('role', 'option');
+                    li.setAttribute('tabindex', '-1');
+                    if (font.originalIndex === state.selectedFontIndex) {
+                        li.classList.add('selected');
+                        li.setAttribute('aria-selected', 'true');
+                    } else {
+                        li.setAttribute('aria-selected', 'false');
+                    }
+                    els.fontDropdown.appendChild(li); gIdx++;
+                });
+            });
+            els.fontLabel.textContent = state.fonts[state.selectedFontIndex]?.name || '系统默认';
+        };
+
+        const filterFonts = (query) => {
+            const items = els.fontDropdown.querySelectorAll('li');
+            const labels = els.fontDropdown.querySelectorAll('.group-label');
+            const q = query.toLowerCase();
+            items.forEach(li => li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none');
+            labels.forEach(label => {
+                let n = label.nextElementSibling, vis = false;
+                while (n && !n.classList.contains('group-label') && !n.classList.contains('global-font-row-top')) {
+                    if (n.tagName === 'LI' && n.style.display !== 'none') { vis = true; break; }
+                    n = n.nextElementSibling;
+                }
+                label.style.display = vis ? '' : 'none';
+            });
+            state.focusedIndex = 0; updateFocus();
+        };
+
+        const getVisibleItems = () => Array.from(els.fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+        const updateFocus = () => {
+            els.fontDropdown.querySelectorAll('li').forEach(li => li.classList.remove('focused'));
+            const v = getVisibleItems();
+            if (v.length) { if (state.focusedIndex >= v.length) state.focusedIndex = 0; v[state.focusedIndex]?.classList.add('focused'); }
+        };
+        const scrollToFocused = () => els.fontDropdown.querySelector('li.focused')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+        const toggleDropdown = (force) => {
+            state.isDropdownOpen = force !== undefined ? force : !state.isDropdownOpen;
+            els.fontTrigger.classList.toggle('open', state.isDropdownOpen);
+            els.fontTrigger.setAttribute('aria-expanded', state.isDropdownOpen);
+            if (state.isDropdownOpen) {
+                if (els.fontDropdown.parentElement !== document.body) document.body.appendChild(els.fontDropdown);
+                els.fontDropdown.classList.add('show');
+                requestAnimationFrame(() => {
+                    positionPanel(els.fontTrigger, els.fontDropdown);
+                    filterFonts('');
+                    state.focusedIndex = 0; updateFocus(); scrollToFocused();
+                    updateDropdownGlobalToggle();
+                    const search = els.fontDropdown.querySelector('.font-search input');
+                    if (search) search.focus();
+                });
+            } else {
+                els.fontDropdown.classList.remove('show');
+                try { els.fontSelectWrap.appendChild(els.fontDropdown); } catch(e) {}
+                els.fontTrigger.focus();
+            }
+        };
+
+        const selectFont = async (index, skipSave = false) => {
+            if (!state.fonts.length || index < 0 || index >= state.fonts.length) index = 0;
+            const font = state.fonts[index];
+            if (font.type === 'upload' && font.src && !state.loadedCustomFonts.has(font.src)) { showToast('字体尚未就绪'); return; }
+            state.selectedFontIndex = index;
+            els.fontLabel.textContent = font?.name || '系统默认';
+            els.fontDropdown.querySelectorAll('li').forEach(li => {
+                const selected = parseInt(li.dataset.index) === index;
+                li.classList.toggle('selected', selected);
+                li.setAttribute('aria-selected', selected);
+            });
+            applyFont(index);
+            if (state.globalFontEnabled) applyGlobalFont();
+            toggleDropdown(false);
+            if (!skipSave) scheduleSave();
+        };
+
+        const handleFontUpload = async (files) => {
+            if (!files?.length) return;
+            const exts = ['.ttf','.otf','.woff','.woff2'];
+            const fontFiles = Array.from(files).filter(f => exts.includes('.' + f.name.split('.').pop().toLowerCase()));
+            if (!fontFiles.length) { showToast('请选择 .ttf/.otf/.woff/.woff2 格式'); return; }
+            showFontProgress(true, '读取中…', 0, `0/${fontFiles.length}`);
+            let ok = 0;
+            const objectUrls = [];
+            for (let i=0; i<fontFiles.length; i++) {
+                const file = fontFiles[i];
+                showFontProgress(true, file.name, Math.round((i/fontFiles.length)*100), `${i+1}/${fontFiles.length}`);
+                try {
+                    const buf = await file.arrayBuffer();
+                    const url = URL.createObjectURL(new Blob([buf]));
+                    objectUrls.push(url);
+                    const fam = file.name.replace(/\.[^/.]+$/, '').trim();
+                    const ff = new FontFace(fam, buf);
+                    await ff.load(); document.fonts.add(ff);
+                    state.loadedCustomFonts.set(url, { familyName: fam, fontObj: ff, objectUrl: url });
+                    state.fonts.push({ name: fam, family: `"${fam}"`, src: url, type: 'upload' });
+                    ok++;
+                } catch(e) { showToast(`「${file.name}」加载失败`); }
+            }
+            showFontProgress(false);
+            if (ok) {
+                buildDropdown();
+                state.selectedFontIndex = state.fonts.length - 1;
+                els.fontLabel.textContent = state.fonts[state.selectedFontIndex].name;
+                applyFont(state.selectedFontIndex);
+                if (state.globalFontEnabled) applyGlobalFont();
+                showToast(`成功加载 ${ok} 个字体`);
+            }
+            setTimeout(() => {
+                objectUrls.forEach(url => {
+                    if (!state.loadedCustomFonts.has(url)) URL.revokeObjectURL(url);
+                });
+            }, 1000);
+        };
+
+        window.addEventListener('beforeunload', () => {
+            state.loadedCustomFonts.forEach((val) => {
+                if (val.objectUrl) URL.revokeObjectURL(val.objectUrl);
+            });
         });
-      });
 
-      els.fontLabel.textContent = state.fonts[state.selectedFontIndex]?.name || '系统默认';
-    };
+        const applyFont = (index) => {
+            const font = state.fonts[index];
+            if (!font) { els.editor.style.fontFamily = DEFAULT_BODY_FONT; return; }
+            if (font.type === 'upload' && font.src) {
+                const l = state.loadedCustomFonts.get(font.src);
+                els.editor.style.fontFamily = l ? `"${l.familyName}"` : font.family;
+            } else els.editor.style.fontFamily = font.family;
+        };
 
-    const filterFonts = (query) => {
-      const items = els.fontDropdown.querySelectorAll('li');
-      const labels = els.fontDropdown.querySelectorAll('.group-label');
-      const q = query.toLowerCase();
-      items.forEach(li => li.style.display = li.textContent.toLowerCase().includes(q) ? '' : 'none');
-      labels.forEach(label => {
-        let next = label.nextElementSibling, hasVisible = false;
-        while (next && !next.classList.contains('group-label')) {
-          if (next.tagName === 'LI' && next.style.display !== 'none') { hasVisible = true; break; }
-          next = next.nextElementSibling;
-        }
-        label.style.display = hasVisible ? '' : 'none';
-      });
-      state.focusedIndex = 0;
-      updateFocus();
-    };
+        const updateEditorStyle = () => {
+            els.editor.style.fontSize = `${state.fontSize}px`;
+            els.editor.style.lineHeight = state.lineHeight;
+        };
+        const updatePaperTexture = () => { els.paperTexture.className = `paper-texture ${state.paperMode}`; };
 
-    const getVisibleItems = () => Array.from(els.fontDropdown.querySelectorAll('li')).filter(li => li.style.display !== 'none');
+        // ==================== UNDO / CLEAR ====================
+        const pushUndo = () => {
+            state.undoStack.push(els.editor.value);
+            if (state.undoStack.length > 10) state.undoStack.shift();
+        };
 
-    const updateFocus = () => {
-      els.fontDropdown.querySelectorAll('li').forEach(li => li.classList.remove('focused'));
-      const visible = getVisibleItems();
-      if (visible.length > 0 && state.focusedIndex < visible.length) {
-        visible[state.focusedIndex].classList.add('focused');
-      } else if (visible.length > 0) {
-        state.focusedIndex = 0;
-        visible[0].classList.add('focused');
-      }
-    };
+        const undoClear = () => {
+            if (state.undoStack.length > 0) {
+                const prev = state.undoStack.pop();
+                els.editor.value = prev;
+                updateCount();
+                scheduleSave();
+                showToast('已撤销清空');
+            }
+        };
 
-    const scrollToFocused = () => {
-      const focused = els.fontDropdown.querySelector('li.focused');
-      if (focused) focused.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    };
+        const clearContent = () => {
+            const btn = els.clearBtn;
+            if (btn.classList.contains('confirm-danger')) {
+                pushUndo();
+                els.editor.value = ''; updateCount();
+                btn.classList.remove('confirm-danger'); btn.title = '清空内容';
+                clearTimeout(state.clearConfirmTimer); state.clearConfirmTimer = null;
+                scheduleSave(); showToast('内容已清空（Ctrl+Z 撤销）');
+            } else {
+                btn.classList.add('confirm-danger'); btn.title = '再次点击确认清空';
+                showToast('再次点击清空按钮以确认');
+                clearTimeout(state.clearConfirmTimer);
+                state.clearConfirmTimer = setTimeout(() => { btn.classList.remove('confirm-danger'); btn.title = '清空内容'; }, 3000);
+            }
+        };
 
-    const toggleDropdown = (force) => {
-      state.isDropdownOpen = force !== undefined ? force : !state.isDropdownOpen;
-      els.fontTrigger.classList.toggle('open', state.isDropdownOpen);
-      if (state.isDropdownOpen) {
-        if (els.fontDropdown.parentElement !== document.body) {
-          document.body.appendChild(els.fontDropdown);
-        }
-        const rect = els.fontTrigger.getBoundingClientRect();
-        els.fontDropdown.style.top = (rect.bottom + 6) + 'px';
-        els.fontDropdown.style.left = Math.max(8, rect.left) + 'px';
-        els.fontDropdown.classList.add('show');
-        const searchInput = els.fontDropdown.querySelector('.font-search input');
-        if (searchInput) { searchInput.value = ''; filterFonts(''); setTimeout(() => searchInput.focus(), 50); }
-        state.focusedIndex = 0;
-        updateFocus();
-        scrollToFocused();
-      } else {
-        els.fontDropdown.classList.remove('show');
-        if (els.fontSelectWrap && els.fontDropdown.parentElement !== els.fontSelectWrap) {
-          try { els.fontSelectWrap.appendChild(els.fontDropdown); } catch(e) {}
-        }
-      }
-    };
+        // ==================== TEXT WRAPPING ====================
+        const wrapText = (ctx, text, maxW) => {
+            const lines = [];
+            const isCJK = (char) => /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(char);
+            text.split('\n').forEach(p => {
+                if (!p) { lines.push(''); return; }
+                let line = '';
+                let wordBuffer = '';
+                for (let i = 0; i < p.length; i++) {
+                    const char = p[i];
+                    if (isCJK(char)) {
+                        if (wordBuffer) {
+                            const testLine = line + wordBuffer;
+                            if (ctx.measureText(testLine).width > maxW && line.length) {
+                                lines.push(line); line = wordBuffer;
+                            } else { line = testLine; }
+                            wordBuffer = '';
+                        }
+                        const testLine = line + char;
+                        if (ctx.measureText(testLine).width > maxW && line.length) {
+                            lines.push(line); line = char;
+                        } else { line = testLine; }
+                    } else if (/\s/.test(char)) {
+                        if (wordBuffer) {
+                            const testLine = line + wordBuffer;
+                            if (ctx.measureText(testLine).width > maxW && line.length) {
+                                lines.push(line); line = wordBuffer;
+                            } else { line = testLine; }
+                            wordBuffer = '';
+                        }
+                        line += char;
+                    } else {
+                        wordBuffer += char;
+                    }
+                }
+                if (wordBuffer) {
+                    const testLine = line + wordBuffer;
+                    if (ctx.measureText(testLine).width > maxW && line.length) {
+                        lines.push(line); line = wordBuffer;
+                    } else { line = testLine; }
+                }
+                lines.push(line);
+            });
+            return lines;
+        };
 
-    // 选择字体
-    const selectFont = async (index, skipSave = false) => {
-      if (!state.fonts.length || index < 0 || index >= state.fonts.length) {
-        index = 0;
-      }
-      const font = state.fonts[index];
-      
-      // 如果是上传字体且未加载，先加载
-      if (font.type === 'upload' && font.src && !state.loadedCustomFonts.has(font.src)) {
-        showToast('字体尚未就绪');
-        return;
-      }
+        // ==================== EXPORT IMAGE ====================
+        const exportImage = async () => {
+            const text = els.editor.value;
+            if (!text.trim() && state.images.length === 0) { showToast('请输入内容或添加图片'); return; }
+            els.exportBtn.disabled = true; showToast('正在生成...');
+            const font = state.fonts[state.selectedFontIndex];
+            let fontFamily = DEFAULT_BODY_FONT;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const pad = 40, cw = 440, fs = state.fontSize + 2, lh = Math.round(fs * state.lineHeight), bh = 44;
+            const imgSize = 100, imgGap = 12;
 
-      state.selectedFontIndex = index;
-      els.fontLabel.textContent = font?.name || '系统默认';
-      els.fontDropdown.querySelectorAll('li').forEach(li => {
-        li.classList.toggle('selected', parseInt(li.dataset.index) === index);
-      });
-      applyFont(index);
-      toggleDropdown(false);
-      if (!skipSave) scheduleSave();
-    };
+            if (font?.type === 'upload' && font.src) {
+                const l = state.loadedCustomFonts.get(font.src);
+                if (l) { fontFamily = `"${l.familyName}"`; await document.fonts.load(`${fs}px ${fontFamily}`).catch(()=>{}); }
+            } else if (font) {
+                fontFamily = font.family;
+                await document.fonts.load(`${fs}px ${fontFamily}`).catch(()=>{});
+            }
 
-    // 处理字体上传
-    const handleFontUpload = async (files) => {
-      if (!files || files.length === 0) return;
-      
-      const validExts = ['.ttf', '.otf', '.woff', '.woff2'];
-      const fontFiles = Array.from(files).filter(f => {
-        const ext = '.' + f.name.split('.').pop().toLowerCase();
-        return validExts.includes(ext);
-      });
+            ctx.font = `${fs}px ${fontFamily}`;
+            const textLines = wrapText(ctx, text, cw);
+            const textHeight = textLines.length * lh;
+            const imgRows = Math.ceil(state.images.length / 4);
+            const imgAreaHeight = state.images.length > 0 ? (imgRows * imgSize + (imgRows - 1) * imgGap + pad) : 0;
+            const cW = cw + pad * 2;
+            const cH = Math.max(260, textHeight + pad * 2 + bh + imgAreaHeight);
 
-      if (fontFiles.length === 0) {
-        showToast('请选择 .ttf / .otf / .woff / .woff2 格式的字体文件');
-        return;
-      }
+            canvas.width = cW * dpr; canvas.height = cH * dpr; ctx.scale(dpr, dpr);
+            ctx.fillStyle = getCurrentColors()[state.currentColor];
+            ctx.fillRect(0, 0, cW, cH);
 
-      showFontProgress(true, '正在读取字体文件…', 0, '0 / ' + fontFiles.length);
+            ctx.strokeStyle = state.darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.025)';
+            if (state.paperMode === 'lines') {
+                for (let y = pad + 16; y < cH - bh - imgAreaHeight; y += 32) { ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(cW - pad, y); ctx.stroke(); }
+            } else if (state.paperMode === 'grid') {
+                for (let y = pad + 16; y < cH - bh - imgAreaHeight; y += 32) { ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(cW - pad, y); ctx.stroke(); }
+                for (let x = pad; x < cW - pad; x += 32) { ctx.beginPath(); ctx.moveTo(x, pad + 16); ctx.lineTo(x, cH - bh - imgAreaHeight); ctx.stroke(); }
+            }
 
-      let successCount = 0;
-      for (let i = 0; i < fontFiles.length; i++) {
-        const file = fontFiles[i];
-        showFontProgress(true, '正在加载：' + file.name, Math.round((i / fontFiles.length) * 100), (i + 1) + ' / ' + fontFiles.length);
-        
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const blob = new Blob([arrayBuffer]);
-          const blobUrl = URL.createObjectURL(blob);
-          
-          // 从文件名生成字体族名（去掉扩展名）
-          const familyName = file.name.replace(/\.[^/.]+$/, '').trim();
-          const displayName = familyName;
-          
-          // 创建 FontFace
-          const ff = new FontFace(familyName, arrayBuffer);
-          await ff.load();
-          document.fonts.add(ff);
-          
-          state.loadedCustomFonts.set(blobUrl, { familyName, fontObj: ff });
-          
-          // 添加到字体列表
-          state.fonts.push({
-            name: displayName,
-            family: '"' + familyName + '"',
-            src: blobUrl,
-            type: 'upload'
-          });
-          
-          successCount++;
-        } catch (err) {
-          console.error('字体加载失败:', file.name, err);
-          showToast('"' + file.name + '" 加载失败');
-        }
-      }
+            ctx.fillStyle = state.darkMode ? '#d4c4a8' : '#3a3a3a';
+            ctx.font = `${fs}px ${fontFamily}`;
+            ctx.textAlign = state.textAlign;
+            const getX = () => {
+                if (state.textAlign === 'center') return cW / 2;
+                if (state.textAlign === 'right') return cW - pad;
+                return pad;
+            };
+            textLines.forEach((l, i) => {
+                const x = getX();
+                ctx.fillText(l, x, pad + i * lh);
+            });
 
-      showFontProgress(false);
-      
-      if (successCount > 0) {
-        buildDropdown();
-        showToast('成功加载 ' + successCount + ' 个字体');
-        // 自动选中新上传的最后一个字体
-        state.selectedFontIndex = state.fonts.length - 1;
-        els.fontLabel.textContent = state.fonts[state.selectedFontIndex].name;
-        applyFont(state.selectedFontIndex);
-      }
-    };
+            // Draw images
+            if (state.images.length > 0) {
+                const imgYStart = pad + textHeight + pad / 2;
+                const imgsPerRow = 4;
+                const totalImgWidth = imgsPerRow * imgSize + (imgsPerRow - 1) * imgGap;
+                const imgXStart = (cW - totalImgWidth) / 2;
 
-    // 应用字体到编辑器
-    const applyFont = (index) => {
-      const font = state.fonts[index];
-      els.fontError.classList.remove('show');
-      els.fontError.textContent = '';
-      if (!font) {
-        els.editor.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        return;
-      }
-      if (font.type === 'upload' && font.src) {
-        const loaded = state.loadedCustomFonts.get(font.src);
-        if (loaded) {
-          els.editor.style.fontFamily = '"' + loaded.familyName + '"';
-        } else {
-          els.editor.style.fontFamily = font.family;
-        }
-      } else {
-        els.editor.style.fontFamily = font.family;
-      }
-    };
+                for (let i = 0; i < state.images.length; i++) {
+                    const row = Math.floor(i / imgsPerRow);
+                    const col = i % imgsPerRow;
+                    const ix = imgXStart + col * (imgSize + imgGap);
+                    const iy = imgYStart + row * (imgSize + imgGap);
+                    try {
+                        const img = new Image();
+                        img.src = state.images[i].dataUrl;
+                        await new Promise((res) => { img.onload = res; img.onerror = res; });
+                        ctx.drawImage(img, ix, iy, imgSize, imgSize);
+                        // Rounded corners clip
+                        ctx.strokeStyle = state.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(ix, iy, imgSize, imgSize);
+                    } catch(e) {}
+                }
+            }
 
-    const updateEditorStyle = () => {
-      els.editor.style.fontSize = state.fontSize + 'px';
-      els.editor.style.lineHeight = state.lineHeight;
-    };
-    const updatePaperTexture = () => {
-      els.paperTexture.className = 'paper-texture ' + state.paperMode;
-    };
-    const updateNoteColor = () => {
-      els.stickyNote.style.background = colors[state.currentColor];
-    };
+            ctx.font = '500 10px system-ui'; ctx.fillStyle = state.darkMode ? '#9a8e7e' : '#bbb';
+            const barY = cH - bh + 4;
+            ctx.textAlign = 'left';
+            if (state.showDate) ctx.fillText(`${new Date().getFullYear()}年${new Date().getMonth()+1}月${new Date().getDate()}日`, pad, barY);
+            ctx.textAlign = 'center'; ctx.fillText('便签', cW / 2, barY);
 
-    // ---------- 存储 ----------
-    const saveToStorage = () => {
-      const data = {
-        text: els.editor.value,
-        color: state.currentColor,
-        paperMode: state.paperMode,
-        fontSize: state.fontSize,
-        lineHeight: state.lineHeight,
-        showDate: state.showDate,
-        settingsOpen: state.settingsOpen,
-        timestamp: Date.now()
-      };
-      try {
-        localStorage.setItem('stickyNote_v6', JSON.stringify(data));
-        showSaveStatus(false);
-      } catch(e) { showSaveStatus(false, true); }
-    };
+            const a = document.createElement('a');
+            a.download = `便签_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${Date.now()}.png`;
+            a.href = canvas.toDataURL('image/png'); a.click();
+            showToast('图片已导出'); els.exportBtn.disabled = false;
+        };
 
-    const loadFromStorage = () => {
-      try {
-        const raw = localStorage.getItem('stickyNote_v6');
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data.text) { els.editor.value = data.text; els.count.textContent = data.text.length; }
-        if (data.color && colors[data.color]) {
-          state.currentColor = data.color;
-          document.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === data.color));
-          updateNoteColor();
-        }
-        if (data.paperMode) {
-          state.paperMode = data.paperMode;
-          document.querySelectorAll('.paper-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === data.paperMode));
-          updatePaperTexture();
-        }
-        if (data.fontSize) { state.fontSize = data.fontSize; els.fontSizeSlider.value = data.fontSize; els.fontSizeValue.textContent = data.fontSize; }
-        if (data.lineHeight) { state.lineHeight = data.lineHeight; els.lineHeightSlider.value = data.lineHeight; els.lineHeightValue.textContent = data.lineHeight.toFixed(2); }
-        if (typeof data.showDate === 'boolean') { state.showDate = data.showDate; els.dateToggle.checked = data.showDate; }
-        if (typeof data.settingsOpen === 'boolean') { state.settingsOpen = data.settingsOpen; els.settingsPanel.classList.toggle('show', data.settingsOpen); els.settingsBtn.classList.toggle('active', data.settingsOpen); }
-        updateEditorStyle();
-      } catch(e) { console.warn('加载本地数据失败', e); }
-    };
+        // ==================== STORAGE ====================
+        const saveToStorage = () => {
+            const data = {
+                version: CURRENT_VERSION,
+                text: els.editor.value, color: state.currentColor, paperMode: state.paperMode,
+                fontSize: state.fontSize, lineHeight: state.lineHeight, showDate: state.showDate,
+                settingsOpen: state.settingsOpen, globalFontEnabled: state.globalFontEnabled,
+                darkMode: state.darkMode, locked: state.locked, textAlign: state.textAlign,
+                countMode: state.countMode, selectedFontIndex: state.selectedFontIndex,
+                images: state.images, timestamp: Date.now()
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                showSaveStatus(false); updateLastSavedTime();
+            } catch(e) { showSaveStatus(false, true); }
+        };
 
-    const scheduleSave = () => {
-      if (state.isInitialLoad) return;
-      state.isSaving = true;
-      showSaveStatus(true);
-      clearTimeout(state.saveTimer);
-      state.saveTimer = setTimeout(() => { saveToStorage(); state.isSaving = false; }, 800);
-    };
+        const migrateData = (data) => {
+            if (!data.version) data.version = CURRENT_VERSION;
+            return data;
+        };
 
-    const showSaveStatus = (isLoading, isError) => {
-      els.saveDot.classList.add('show');
-      els.saveDot.classList.toggle('saving', isLoading);
-      els.saveDot.style.background = isError ? '#e74c3c' : (isLoading ? '#f39c12' : '#27ae60');
-      if (!isLoading && !isError) setTimeout(() => els.saveDot.classList.remove('show'), 1500);
-    };
+        const loadFromStorage = () => {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('memo_v13') || localStorage.getItem('memo_v12');
+                if (!raw) return;
+                let d = JSON.parse(raw);
+                d = migrateData(d);
+                if (d.text !== undefined) els.editor.value = d.text;
+                if (d.color && getCurrentColors()[d.color]) {
+                    state.currentColor = d.color;
+                    updateColorPanelSelection();
+                }
+                if (d.paperMode) {
+                    state.paperMode = d.paperMode;
+                    document.querySelectorAll('.paper-mode-btn').forEach(b => {
+                        const active = b.dataset.mode === d.paperMode;
+                        b.classList.toggle('active', active);
+                        b.setAttribute('aria-checked', active);
+                    });
+                    updatePaperTexture();
+                }
+                if (d.fontSize) { state.fontSize = d.fontSize; els.fontSizeSlider.value = d.fontSize; els.fontSizeValue.textContent = d.fontSize; }
+                if (d.lineHeight) { state.lineHeight = d.lineHeight; els.lineHeightSlider.value = d.lineHeight; els.lineHeightValue.textContent = d.lineHeight.toFixed(2); }
+                if (typeof d.showDate === 'boolean') { state.showDate = d.showDate; els.dateToggle.checked = d.showDate; }
+                if (typeof d.settingsOpen === 'boolean') { state.settingsOpen = d.settingsOpen; els.settingsPanel.classList.toggle('show', d.settingsOpen); els.settingsBtn.classList.toggle('active', d.settingsOpen); els.settingsBtn.setAttribute('aria-expanded', d.settingsOpen); }
+                if (typeof d.globalFontEnabled === 'boolean') state.globalFontEnabled = d.globalFontEnabled;
+                if (typeof d.darkMode === 'boolean') {
+                    state.darkMode = d.darkMode;
+                    document.body.classList.toggle('dark-mode', d.darkMode);
+                    els.darkModeBtn.classList.toggle('active', d.darkMode);
+                    els.darkModeBtn.setAttribute('aria-pressed', d.darkMode);
+                }
+                if (typeof d.locked === 'boolean') {
+                    state.locked = d.locked;
+                    els.editor.readOnly = d.locked;
+                    els.editor.classList.toggle('locked', d.locked);
+                    els.lockBtn.classList.toggle('active', d.locked);
+                    els.lockBtn.setAttribute('aria-pressed', d.locked);
+                    els.lockIconUnlocked.style.display = d.locked ? 'none' : '';
+                    els.lockIconLocked.style.display = d.locked ? '' : 'none';
+                    els.stickyNote.classList.toggle('locked-note', d.locked);
+                    els.lockOverlay.classList.toggle('show', d.locked);
+                    els.toolbar.style.pointerEvents = d.locked ? 'none' : '';
+                    els.toolbar.style.opacity = d.locked ? '0.5' : '';
+                }
+                if (d.textAlign && ['left','center','right'].includes(d.textAlign)) {
+                    state.textAlign = d.textAlign;
+                    els.editor.style.textAlign = d.textAlign;
+                    document.querySelectorAll('.align-btn').forEach(b => {
+                        const active = b.dataset.align === d.textAlign;
+                        b.classList.toggle('active', active);
+                        b.setAttribute('aria-checked', active);
+                    });
+                }
+                if (typeof d.countMode === 'number') state.countMode = d.countMode;
+                if (typeof d.selectedFontIndex === 'number' && d.selectedFontIndex < state.fonts.length) {
+                    state.selectedFontIndex = d.selectedFontIndex;
+                    els.fontLabel.textContent = state.fonts[d.selectedFontIndex]?.name || '系统默认';
+                }
+                if (d.images && Array.isArray(d.images)) {
+                    state.images = d.images;
+                    renderImageGallery();
+                }
+                els.globalFontCheckbox.checked = state.globalFontEnabled;
+                els.globalFontSettingLabel.classList.toggle('active-label', state.globalFontEnabled);
+                if (state.globalFontEnabled) applyGlobalFont();
+                else { document.body.style.fontFamily = ''; document.documentElement.style.setProperty('--body-font', DEFAULT_BODY_FONT); }
+                updateEditorStyle(); updateNoteColor(); applyFont(state.selectedFontIndex); updateCount();
+                if (d.timestamp) { state.lastSavedTime = d.timestamp; updateLastSavedTime(); }
+            } catch(e) { console.warn('加载失败', e); }
+        };
 
-    // 导出图片
-    const exportImage = async () => {
-      const text = els.editor.value;
-      if (!text.trim()) { showToast('请输入内容'); return; }
-      els.exportBtn.disabled = true;
-      showToast('正在生成...');
+        const scheduleSave = () => {
+            if (state.isInitialLoad) return;
+            state.isSaving = true; showSaveStatus(true);
+            clearTimeout(state.saveTimer);
+            state.saveTimer = setTimeout(() => {
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(() => { saveToStorage(); state.isSaving = false; }, { timeout: 2000 });
+                } else { saveToStorage(); state.isSaving = false; }
+            }, 600);
+        };
 
-      const font = state.fonts[state.selectedFontIndex];
-      let fontFamily = 'system-ui, -apple-system, sans-serif';
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const dpr = 3, padding = 40, contentWidth = 440;
-      const fontSize = state.fontSize + 2;
-      const lineHeightPx = Math.round(fontSize * state.lineHeight);
-      const bottomBarHeight = 44;
+        const showSaveStatus = (loading, error) => {
+            els.saveDot.classList.add('show');
+            els.saveDot.classList.toggle('saving', loading);
+            els.saveDot.style.background = error ? '#e74c3c' : (loading ? '#f39c12' : '#27ae60');
+            if (!loading && !error) setTimeout(() => els.saveDot.classList.remove('show'), 1500);
+        };
 
-      // 确定要使用的字体族名
-      if (font?.type === 'upload' && font.src) {
-        const loaded = state.loadedCustomFonts.get(font.src);
-        if (loaded) {
-          fontFamily = '"' + loaded.familyName + '"';
-          try {
-            await document.fonts.load(fontSize + 'px ' + fontFamily);
-          } catch (e) {}
-        }
-      } else if (font) {
-        fontFamily = font.family;
-      }
+        const setupSystemTheme = () => {
+            const mql = window.matchMedia('(prefers-color-scheme: dark)');
+            const handler = (e) => {
+                if (!state.userManuallyToggledDark && state.isInitialLoad) toggleDarkMode(e.matches);
+            };
+            mql.addEventListener('change', handler);
+            if (!localStorage.getItem(STORAGE_KEY) && !localStorage.getItem('memo_v13') && !localStorage.getItem('memo_v12')) {
+                if (mql.matches) toggleDarkMode(true);
+            }
+        };
 
-      ctx.font = fontSize + 'px ' + fontFamily;
-      const lines = wrapText(ctx, text, contentWidth);
-      const textHeight = lines.length * lineHeightPx;
-      const canvasWidth = contentWidth + padding*2;
-      const canvasHeight = Math.max(260, textHeight + padding*2 + bottomBarHeight);
+        // ==================== EVENTS ====================
+        const setupEvents = () => {
+            els.fontTrigger.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
+            els.fontTrigger.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDropdown(); }
+                else if (e.key === 'ArrowDown' && !state.isDropdownOpen) { e.preventDefault(); toggleDropdown(true); }
+            });
+            els.fontDropdown.addEventListener('click', (e) => {
+                const li = e.target.closest('li[data-index]');
+                if (li) selectFont(parseInt(li.dataset.index));
+            });
+            els.fontDropdown.addEventListener('keydown', (e) => {
+                const items = getVisibleItems();
+                if (!items.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); state.focusedIndex = (state.focusedIndex + 1) % items.length; updateFocus(); scrollToFocused(); items[state.focusedIndex].focus(); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); state.focusedIndex = (state.focusedIndex - 1 + items.length) % items.length; updateFocus(); scrollToFocused(); items[state.focusedIndex].focus(); }
+                else if (e.key === 'Enter') { e.preventDefault(); const focused = items[state.focusedIndex]; if (focused) selectFont(parseInt(focused.dataset.index)); }
+                else if (e.key === 'Escape') { toggleDropdown(false); }
+                else if (e.key === 'Home') { e.preventDefault(); state.focusedIndex = 0; updateFocus(); scrollToFocused(); items[0].focus(); }
+                else if (e.key === 'End') { e.preventDefault(); state.focusedIndex = items.length - 1; updateFocus(); scrollToFocused(); items[items.length - 1].focus(); }
+            });
 
-      canvas.width = canvasWidth * dpr;
-      canvas.height = canvasHeight * dpr;
-      ctx.scale(dpr, dpr);
+            els.editor.addEventListener('input', () => { updateCount(); scheduleSave(); });
+            els.editor.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); exportImage(); }
+                if (e.ctrlKey && e.key === 'z' && !state.locked) { e.preventDefault(); undoClear(); }
+            });
+            els.editor.addEventListener('paste', handlePaste);
 
-      ctx.fillStyle = colors[state.currentColor];
-      ctx.fillRect(0,0,canvasWidth,canvasHeight);
+            els.noteCount.addEventListener('click', cycleCountMode);
+            els.noteCount.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleCountMode(); } });
 
-      if (state.paperMode === 'lines') {
-        ctx.strokeStyle = 'rgba(0,0,0,0.025)';
-        for (let y=padding+16; y<canvasHeight-bottomBarHeight; y+=32) {
-          ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(canvasWidth-padding,y); ctx.stroke();
-        }
-      } else if (state.paperMode === 'grid') {
-        ctx.strokeStyle = 'rgba(0,0,0,0.02)';
-        for (let y=padding+16; y<canvasHeight-bottomBarHeight; y+=32) {
-          ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(canvasWidth-padding,y); ctx.stroke();
-        }
-        for (let x=padding; x<canvasWidth-padding; x+=32) {
-          ctx.beginPath(); ctx.moveTo(x,padding+16); ctx.lineTo(x,canvasHeight-bottomBarHeight); ctx.stroke();
-        }
-      }
+            els.darkModeBtn.addEventListener('click', (e) => { e.stopPropagation(); state.userManuallyToggledDark = true; toggleDarkMode(); });
+            els.lockBtn.addEventListener('click', toggleLock);
+            els.globalFontCheckbox.addEventListener('change', () => toggleGlobalFont(els.globalFontCheckbox.checked));
 
-      ctx.fillStyle = '#3a3a3a';
-      ctx.font = fontSize + 'px ' + fontFamily;
-      lines.forEach((line,i) => ctx.fillText(line, padding, padding + i*lineHeightPx));
+            els.clearBtn.addEventListener('click', clearContent);
+            els.clearBtn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); clearContent(); } });
 
-      const barY = canvasHeight - bottomBarHeight + 4;
-      ctx.font = '500 10px system-ui';
-      ctx.fillStyle = '#bbb';
-      if (state.showDate) {
-        const now = new Date();
-        ctx.fillText(now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日', padding, barY);
-      }
-      ctx.textAlign = 'center';
-      ctx.fillText('便签', canvasWidth/2, barY);
+            els.settingsBtn.addEventListener('click', () => {
+                state.settingsOpen = !state.settingsOpen;
+                els.settingsPanel.classList.toggle('show', state.settingsOpen);
+                els.settingsBtn.classList.toggle('active', state.settingsOpen);
+                els.settingsBtn.setAttribute('aria-expanded', state.settingsOpen);
+                scheduleSave();
+            });
 
-      const link = document.createElement('a');
-      link.download = '便签_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '_' + Date.now() + '.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      showToast('图片已导出');
-      els.exportBtn.disabled = false;
-    };
+            els.alignBtns.addEventListener('click', (e) => {
+                const btn = e.target.closest('.align-btn');
+                if (btn) setTextAlign(btn.dataset.align);
+            });
 
-    const wrapText = (ctx, text, maxWidth) => {
-      const lines = [];
-      text.split('\n').forEach(para => {
-        if (!para) { lines.push(''); return; }
-        let line = '';
-        for (let i=0; i<para.length; i++) {
-          const test = line + para[i];
-          if (ctx.measureText(test).width > maxWidth && line.length>0) {
-            lines.push(line);
-            line = para[i];
-          } else line = test;
-        }
-        lines.push(line);
-      });
-      return lines;
-    };
+            els.colorPickBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleColorPanel(); });
+            els.colorPickBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleColorPanel(); }
+                else if (e.key === 'Escape' && state.colorPanelOpen) { toggleColorPanel(false); }
+            });
 
-    // 事件绑定
-    const setupEvents = () => {
-      els.fontTrigger.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
-      els.fontDropdown.addEventListener('click', (e) => {
-        const li = e.target.closest('li[data-index]');
-        if (li) selectFont(parseInt(li.dataset.index));
-      });
+            // Drag & drop
+            els.editorWrap.addEventListener('dragover', handleDragOver);
+            els.editorWrap.addEventListener('dragleave', handleDragLeave);
+            els.editorWrap.addEventListener('drop', handleDrop);
+            els.stickyNote.addEventListener('dragover', handleDragOver);
+            els.stickyNote.addEventListener('dragleave', handleDragLeave);
+            els.stickyNote.addEventListener('drop', handleDrop);
 
-      els.fontTrigger.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleDropdown(); }
-        else if (e.key === 'ArrowDown') {
-          e.preventDefault(); if (!state.isDropdownOpen) toggleDropdown(true);
-          const visible = getVisibleItems();
-          if (visible.length) { state.focusedIndex = Math.min(state.focusedIndex+1, visible.length-1); updateFocus(); scrollToFocused(); }
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault(); if (!state.isDropdownOpen) toggleDropdown(true);
-          state.focusedIndex = Math.max(state.focusedIndex-1, 0); updateFocus(); scrollToFocused();
-        } else if (e.key === 'Escape') toggleDropdown(false);
-      });
+            // Image preview
+            els.imgPreviewOverlay.addEventListener('click', closeImagePreview);
+            els.imgPreviewClose.addEventListener('click', closeImagePreview);
+            els.imgPreviewClose.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') closeImagePreview(); });
 
-      els.fontDropdown.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const visible = getVisibleItems();
-          if (visible.length && visible[state.focusedIndex]) selectFont(parseInt(visible[state.focusedIndex].dataset.index));
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault(); const visible = getVisibleItems();
-          if (visible.length) { state.focusedIndex = Math.min(state.focusedIndex+1, visible.length-1); updateFocus(); scrollToFocused(); }
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault(); state.focusedIndex = Math.max(state.focusedIndex-1, 0); updateFocus(); scrollToFocused();
-        } else if (e.key === 'Escape') { toggleDropdown(false); els.fontTrigger.focus(); }
-      });
+            // Share
+            els.shareBtn.addEventListener('click', openSharePanel);
+            els.shareClose.addEventListener('click', closeSharePanel);
+            els.shareBackdrop.addEventListener('click', closeSharePanel);
+            els.shareCopyBtn.addEventListener('click', copyShareUrl);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (els.sharePanel.classList.contains('show')) closeSharePanel();
+                    if (els.imgPreviewOverlay.classList.contains('show')) closeImagePreview();
+                }
+            });
 
-      document.addEventListener('click', (e) => {
-        if (state.isDropdownOpen && !els.fontSelectWrap.contains(e.target) && !els.fontDropdown.contains(e.target)) {
-          toggleDropdown(false);
-        }
-      });
+            document.addEventListener('click', (e) => {
+                if (state.colorPanelOpen && !els.colorPickBtn.contains(e.target) && !els.colorPanel.contains(e.target)) toggleColorPanel(false);
+                if (state.isDropdownOpen && !els.fontSelectWrap.contains(e.target) && !els.fontDropdown.contains(e.target)) toggleDropdown(false);
+            });
 
-      window.addEventListener('resize', () => {
-        if (state.isDropdownOpen) {
-          const rect = els.fontTrigger.getBoundingClientRect();
-          els.fontDropdown.style.top = (rect.bottom+6)+'px';
-          els.fontDropdown.style.left = Math.max(8, rect.left)+'px';
-        }
-      });
+            window.addEventListener('scroll', () => {
+                if (state.colorPanelOpen) positionPanel(els.colorPickBtn, els.colorPanel);
+                if (state.isDropdownOpen) positionPanel(els.fontTrigger, els.fontDropdown);
+            }, { passive: true });
+            window.addEventListener('resize', () => {
+                if (state.colorPanelOpen) positionPanel(els.colorPickBtn, els.colorPanel);
+                if (state.isDropdownOpen) positionPanel(els.fontTrigger, els.fontDropdown);
+            });
 
-      els.editor.addEventListener('input', () => { els.count.textContent = els.editor.value.length; scheduleSave(); });
-      els.editor.addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); exportImage(); } });
+            document.querySelectorAll('.paper-mode-btn').forEach(b => b.addEventListener('click', () => {
+                document.querySelectorAll('.paper-mode-btn').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-checked', 'false'); });
+                b.classList.add('active');
+                b.setAttribute('aria-checked', 'true');
+                state.paperMode = b.dataset.mode;
+                updatePaperTexture(); scheduleSave();
+            }));
 
-      document.querySelectorAll('.color-dot').forEach(dot => {
-        dot.addEventListener('click', () => {
-          document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-          dot.classList.add('active');
-          state.currentColor = dot.dataset.color;
-          updateNoteColor();
-          scheduleSave();
-        });
-      });
+            els.fontSizeSlider.addEventListener('input', (e) => { state.fontSize = parseInt(e.target.value); els.fontSizeValue.textContent = state.fontSize; updateEditorStyle(); scheduleSave(); });
+            els.lineHeightSlider.addEventListener('input', (e) => { state.lineHeight = parseFloat(e.target.value); els.lineHeightValue.textContent = state.lineHeight.toFixed(2); updateEditorStyle(); scheduleSave(); });
+            els.dateToggle.addEventListener('change', () => { state.showDate = els.dateToggle.checked; scheduleSave(); });
+            els.exportBtn.addEventListener('click', exportImage);
+            window.addEventListener('beforeunload', () => { if (state.isSaving) saveToStorage(); });
+        };
 
-      document.querySelectorAll('.paper-mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.paper-mode-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          state.paperMode = btn.dataset.mode;
-          updatePaperTexture();
-          scheduleSave();
-        });
-      });
+        // ==================== INIT ====================
+        const init = () => {
+            buildDropdown();
+            buildColorPanel();
+            setupSystemTheme();
 
-      els.settingsBtn.addEventListener('click', () => {
-        state.settingsOpen = !state.settingsOpen;
-        els.settingsPanel.classList.toggle('show', state.settingsOpen);
-        els.settingsBtn.classList.toggle('active', state.settingsOpen);
-        scheduleSave();
-      });
+            // Try load from hash first (shared link), then localStorage
+            const loadedFromHash = loadFromHash();
+            if (!loadedFromHash) {
+                loadFromStorage();
+            }
 
-      els.fontSizeSlider.addEventListener('input', (e) => {
-        state.fontSize = parseInt(e.target.value);
-        els.fontSizeValue.textContent = state.fontSize;
-        updateEditorStyle();
-        scheduleSave();
-      });
-      els.lineHeightSlider.addEventListener('input', (e) => {
-        state.lineHeight = parseFloat(e.target.value);
-        els.lineHeightValue.textContent = state.lineHeight.toFixed(2);
-        updateEditorStyle();
-        scheduleSave();
-      });
+            applyFont(state.selectedFontIndex);
+            setupEvents();
+            updateEditorStyle();
+            updatePaperTexture();
+            updateNoteColor();
+            if (state.globalFontEnabled) applyGlobalFont();
+            if (state.darkMode) { document.body.classList.add('dark-mode'); els.darkModeBtn.classList.add('active'); els.darkModeBtn.setAttribute('aria-pressed', 'true'); }
+            els.globalFontCheckbox.checked = state.globalFontEnabled;
+            els.globalFontSettingLabel.classList.toggle('active-label', state.globalFontEnabled);
+            if (!state.lastSavedTime) updateLastSavedTime();
+            state.isInitialLoad = false;
+        };
 
-      els.dateToggle.addEventListener('change', () => { state.showDate = els.dateToggle.checked; scheduleSave(); });
-      els.exportBtn.addEventListener('click', exportImage);
-      window.addEventListener('beforeunload', () => { if (state.isSaving) saveToStorage(); });
-    };
-
-    // 启动流程
-    const init = async () => {
-      buildDropdown();
-      applyFont(0);
-      loadFromStorage();
-      setupEvents();
-      updateEditorStyle();
-      updatePaperTexture();
-      updateNoteColor();
-      state.isInitialLoad = false;
-    };
-
-    init();
-  })();
+        init();
+    })();
 </script>
 </body>
 </html>
