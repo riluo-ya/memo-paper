@@ -694,9 +694,8 @@
 
 <div class="header">
     <h1>便签 · MEMO-PAPER</h1>
-    <p>v 3.2.2</p>
+    <p>v 3.2.3</p>
 </div>
-<!-- storage hint removed -->
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
     <div class="tape" aria-hidden="true"></div>
@@ -997,14 +996,15 @@
             countMode: 0, clearConfirmTimer: null, saveTimer: null, isSaving: false,
             isInitialLoad: true, lastSavedTime: null, colorPanelOpen: false,
             userManuallyToggledDark: false, undoStack: [], undoTimer: null,
-            images: [] // Array of { id, dataUrl, name }
+            images: [],
+            isSharedView: false,
+            sharedModified: false
         };
 
         const getCurrentColors = () => state.darkMode ? colorsDark : colorsLight;
 
         const els = {
             saveDot: document.getElementById('saveDot'),
-            // storageHint removed
             fontTrigger: document.getElementById('fontTrigger'),
             fontDropdown: document.getElementById('fontDropdown'),
             fontLabel: document.getElementById('fontLabel'),
@@ -1107,8 +1107,9 @@
             return font.family;
         };
 
-        const applyGlobalFont = () => {
-            const family = state.globalFontEnabled ? getSelectedFontFamily() : DEFAULT_BODY_FONT;
+        const applyGlobalFont = (forceEnable) => {
+            const enabled = forceEnable !== undefined ? forceEnable : state.globalFontEnabled;
+            const family = enabled ? getSelectedFontFamily() : DEFAULT_BODY_FONT;
             document.body.style.fontFamily = family;
             document.documentElement.style.setProperty('--body-font', family);
         };
@@ -1279,7 +1280,6 @@
             const reader = new FileReader();
             reader.onload = async (e) => {
                 let dataUrl = e.target.result;
-                // Compress if large
                 if (file.size > 500 * 1024) {
                     dataUrl = await compressImage(dataUrl);
                 }
@@ -1362,7 +1362,6 @@
             const compressedImages = await Promise.all(
                 state.images.map(img => compressImageForShare(img.dataUrl))
             );
-            // 打包自定义字体元数据（字体二进制文件从 IndexedDB 加载）
             const shareFonts = state.customFonts.map(f => ({
                 id: f.id,
                 name: f.name,
@@ -1407,120 +1406,78 @@
             }
         };
 
-        const loadFromHash = async () => {
-            const hash = window.location.hash.slice(1);
-            if (!hash) return false;
+        const applySharedData = async (hash) => {
             const data = parseShareData(hash);
             if (!data) return false;
 
-            try {
-                // Apply shared data
-                if (data.t !== undefined) els.editor.value = data.t;
-                if (data.c && getCurrentColors()[data.c]) {
-                    state.currentColor = data.c;
-                    updateColorPanelSelection();
-                }
-                if (data.p) {
-                    state.paperMode = data.p;
-                    document.querySelectorAll('.paper-mode-btn').forEach(b => {
-                        const active = b.dataset.mode === data.p;
-                        b.classList.toggle('active', active);
-                        b.setAttribute('aria-checked', active);
-                    });
-                    updatePaperTexture();
-                }
-                // 修复：安全转换数值，避免字符串调用 .toFixed() 崩溃
-                if (data.f !== undefined) {
-                    const fs = parseInt(data.f, 10);
-                    if (!isNaN(fs)) {
-                        state.fontSize = fs;
-                        els.fontSizeSlider.value = fs;
-                        els.fontSizeValue.textContent = fs;
-                    }
-                }
-                if (data.l !== undefined) {
-                    const lh = parseFloat(data.l);
-                    if (!isNaN(lh)) {
-                        state.lineHeight = lh;
-                        els.lineHeightSlider.value = lh;
-                        els.lineHeightValue.textContent = lh.toFixed(2);
-                    }
-                }
-                if (data.d !== undefined) { state.showDate = data.d; els.dateToggle.checked = data.d; }
-                if (data.g !== undefined) state.globalFontEnabled = data.g;
-                if (data.m !== undefined) {
-                    state.darkMode = data.m;
-                    document.body.classList.toggle('dark-mode', data.m);
-                    els.darkModeBtn.classList.toggle('active', data.m);
-                    els.darkModeBtn.setAttribute('aria-pressed', data.m);
-                }
-                if (data.a && ['left','center','right'].includes(data.a)) {
-                    state.textAlign = data.a;
-                    els.editor.style.textAlign = data.a;
-                    document.querySelectorAll('.align-btn').forEach(b => {
-                        const active = b.dataset.align === data.a;
-                        b.classList.toggle('active', active);
-                        b.setAttribute('aria-checked', active);
-                    });
-                }
-                // 修复：过滤非对象元素，防止 img.d 访问报错
-                if (data.i && Array.isArray(data.i)) {
-                    state.images = data.i
-                        .filter(img => img && typeof img === 'object')
-                        .map(img => ({
-                            id: Date.now() + Math.random(),
-                            dataUrl: img.d || '',
-                            name: img.n || ''
-                        }));
-                    renderImageGallery();
-                }
-
-                // 新增：加载分享的自定义字体（合并模式：保留本地字体 + 加载分享字体）
-                if (data.cf && Array.isArray(data.cf) && data.cf.length > 0) {
-                    for (const cf of data.cf) {
-                        if (!cf.id || !cf.name) continue;
-                        // 如果本地已有该字体，跳过
-                        if (state.customFonts.some(f => f.id === cf.id)) continue;
-                        try {
-                            const fontData = await AssetDB.getFont(cf.id);
-                            if (fontData && fontData.src) {
-                                const buf = base64ToArrayBuffer(fontData.src);
-                                const ff = new FontFace(cf.name, buf);
-                                await ff.load();
-                                document.fonts.add(ff);
-                                state.loadedCustomFonts.set(cf.id, {
-                                    familyName: cf.name,
-                                    fontObj: ff,
-                                    src: fontData.src
-                                });
-                                const fontMeta = { id: cf.id, name: cf.name, family: cf.family, type: 'upload' };
-                                state.customFonts.push(fontMeta);
-                                state.fonts.push(fontMeta);
-                            }
-                        } catch (e) {
-                            console.warn('分享字体加载失败', cf.name, e);
-                        }
-                    }
-                }
-
-                // 设置选中的字体索引（在 buildDropdown 之前，确保下拉框正确渲染）
-                if (data.sfi !== undefined && data.sfi >= 0 && data.sfi < state.fonts.length) {
-                    state.selectedFontIndex = data.sfi;
-                }
-                buildDropdown();
-
-                updateEditorStyle();
+            // Apply visual content without touching local font list
+            if (data.t !== undefined) els.editor.value = data.t;
+            if (data.c && getCurrentColors()[data.c]) {
+                state.currentColor = data.c;
+                updateColorPanelSelection();
                 updateNoteColor();
-                applyFont(state.selectedFontIndex);
-                updateCount();
-                if (state.globalFontEnabled) applyGlobalFont();
-
-                showToast('已加载分享的便签');
-                return true;
-            } catch (e) {
-                console.warn('分享链接加载失败', e);
-                return false;
             }
+            if (data.p && ['lines','grid','blank'].includes(data.p)) {
+                state.paperMode = data.p;
+                document.querySelectorAll('.paper-mode-btn').forEach(b => {
+                    const active = b.dataset.mode === data.p;
+                    b.classList.toggle('active', active);
+                    b.setAttribute('aria-checked', active);
+                });
+                updatePaperTexture();
+            }
+            if (data.f !== undefined) {
+                const fs = parseInt(data.f, 10);
+                if (!isNaN(fs)) { state.fontSize = fs; els.fontSizeSlider.value = fs; els.fontSizeValue.textContent = fs; }
+            }
+            if (data.l !== undefined) {
+                const lh = parseFloat(data.l);
+                if (!isNaN(lh)) { state.lineHeight = lh; els.lineHeightSlider.value = lh; els.lineHeightValue.textContent = lh.toFixed(2); }
+            }
+            if (data.d !== undefined) { state.showDate = data.d; els.dateToggle.checked = data.d; }
+            if (data.g !== undefined) {
+                state.globalFontEnabled = data.g;
+                els.globalFontCheckbox.checked = data.g;
+                els.globalFontSettingLabel.classList.toggle('active-label', data.g);
+                applyGlobalFont();
+            }
+            if (data.m !== undefined) {
+                state.darkMode = data.m;
+                document.body.classList.toggle('dark-mode', data.m);
+                els.darkModeBtn.classList.toggle('active', data.m);
+                els.darkModeBtn.setAttribute('aria-pressed', data.m);
+            }
+            if (data.a && ['left','center','right'].includes(data.a)) {
+                state.textAlign = data.a;
+                els.editor.style.textAlign = data.a;
+                document.querySelectorAll('.align-btn').forEach(b => {
+                    const active = b.dataset.align === data.a;
+                    b.classList.toggle('active', active);
+                    b.setAttribute('aria-checked', active);
+                });
+            }
+            if (data.i && Array.isArray(data.i)) {
+                state.images = data.i
+                    .filter(img => img && typeof img === 'object')
+                    .map(img => ({
+                        id: Date.now() + Math.random(),
+                        dataUrl: img.d || '',
+                        name: img.n || ''
+                    }));
+                renderImageGallery();
+            }
+
+            if (data.sfi !== undefined && data.sfi >= 0 && data.sfi < state.fonts.length) {
+                applyFont(data.sfi);
+                state.selectedFontIndex = data.sfi;
+                els.fontLabel.textContent = state.fonts[data.sfi]?.name || '系统默认';
+            }
+
+            // ignore custom font binaries from share, keep local ones intact
+            updateEditorStyle();
+            updateCount();
+            showToast('已加载分享的便签（预览模式，编辑后才会保存）');
+            return true;
         };
 
         const openSharePanel = async () => {
@@ -1734,7 +1691,6 @@
                     fontNameSpan.style.whiteSpace = 'nowrap';
                     li.appendChild(fontNameSpan);
 
-                    // Add delete button for custom fonts
                     if (font.type === 'upload' && font.id) {
                         const delBtn = document.createElement('button');
                         delBtn.className = 'font-delete-btn';
@@ -1790,7 +1746,6 @@
                     filterFonts('');
                     state.focusedIndex = 0; updateFocus(); scrollToFocused();
                     updateDropdownGlobalToggle();
-                    // auto-focus removed to avoid mobile keyboard popup
                 });
             } else {
                 els.fontDropdown.classList.remove('show');
@@ -1836,20 +1791,18 @@
             let total = 0;
             for (let key in localStorage) {
                 if (localStorage.hasOwnProperty(key)) {
-                    total += localStorage[key].length * 2; // UTF-16, 2 bytes per char
+                    total += localStorage[key].length * 2;
                 }
             }
             return total;
         };
         const getLocalStorageTotal = () => {
             const used = getLocalStorageUsage();
-            // 如果缓存的总容量仍然大于已用，直接返回缓存值
             if (window.__lsTotal && used <= window.__lsTotal) return window.__lsTotal;
 
-            // 使用二分法检测剩余可用空间
             const testKey = '__ls_test_' + Date.now();
-            const chunk = 'x'.repeat(1024 * 50); // 50KB chunks
-            let low = 0, high = 200; // up to 10MB
+            const chunk = 'x'.repeat(1024 * 50);
+            let low = 0, high = 200;
             let lastSuccess = 0;
             while (low <= high) {
                 const mid = Math.floor((low + high) / 2);
@@ -1861,25 +1814,20 @@
                     high = mid - 1;
                 }
             }
-            // Clean up
             try { localStorage.removeItem(testKey); } catch(e) {}
             for (let k in localStorage) {
                 if (localStorage.hasOwnProperty(k) && k.startsWith('__ls_test_')) {
                     try { localStorage.removeItem(k); } catch(e) {}
                 }
             }
-
-            // 关键修复：剩余可用空间 + 已用空间 = 总容量
             const available = lastSuccess * 1024 * 50;
             let total = used + available;
-            // 兜底：如果计算异常，按浏览器常见配额估算
             if (total <= used || total < 1024 * 1024) {
                 total = Math.max(5 * 1024 * 1024, used * 1.2);
             }
             window.__lsTotal = total;
             return window.__lsTotal;
         };
-        // updateStorageHint removed — storage display no longer needed
 
         const formatBytes = (bytes) => {
             if (bytes < 1024) return bytes + ' B';
@@ -1894,23 +1842,17 @@
             if (!confirm(`确定要删除字体「${font.name}」吗？`)) return;
 
             try {
-                // Remove from IndexedDB
                 await AssetDB.removeFont(fontId);
 
-                // Remove from loaded fonts map
                 const loaded = state.loadedCustomFonts.get(fontId);
                 if (loaded && loaded.fontObj) {
                     try { document.fonts.delete(loaded.fontObj); } catch(e) {}
                 }
                 state.loadedCustomFonts.delete(fontId);
 
-                // Remove from fonts list
                 state.fonts = state.fonts.filter((f, idx) => idx !== originalIndex);
-
-                // Remove from customFonts list
                 state.customFonts = state.customFonts.filter(f => f.id !== fontId);
 
-                // Adjust selected index if needed
                 if (state.selectedFontIndex >= state.fonts.length) {
                     state.selectedFontIndex = 0;
                 }
@@ -1918,13 +1860,9 @@
                     state.selectedFontIndex = 0;
                 }
 
-                // Apply new selected font before rebuild
                 applyFont(state.selectedFontIndex);
-                // Rebuild dropdown
                 buildDropdown();
-
                 if (state.globalFontEnabled) applyGlobalFont();
-
                 scheduleSave();
                 showToast(`字体「${font.name}」已删除`);
             } catch (e) {
@@ -1948,10 +1886,8 @@
                     const base64 = arrayBufferToBase64(buf);
                     const fam = file.name.replace(/\.[^/.]+$/, '').trim();
 
-                    // 检查是否已存在同名字体，避免重复
                     const existingIdx = state.fonts.findIndex(f => f.type === 'upload' && f.name === fam);
                     if (existingIdx !== -1) {
-                        // 替换已有字体
                         const existing = state.fonts[existingIdx];
                         if (existing.id) {
                             await AssetDB.putFont({ id: existing.id, name: fam, family: `"${fam}"`, type: 'upload', src: base64 });
@@ -2141,7 +2077,6 @@
                 ctx.fillText(l, x, pad + i * lh);
             });
 
-            // Draw images
             if (state.images.length > 0) {
                 const imgYStart = pad + textHeight + pad / 2;
                 const imgsPerRow = 4;
@@ -2158,7 +2093,6 @@
                         img.src = state.images[i].dataUrl;
                         await new Promise((res) => { img.onload = res; img.onerror = res; });
                         ctx.drawImage(img, ix, iy, imgSize, imgSize);
-                        // Rounded corners clip
                         ctx.strokeStyle = state.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
                         ctx.lineWidth = 1;
                         ctx.strokeRect(ix, iy, imgSize, imgSize);
@@ -2180,7 +2114,6 @@
 
         // ==================== STORAGE ====================
         const saveToStorage = async () => {
-            // 同步图片到 IndexedDB
             try {
                 for (const img of state.images) {
                     await AssetDB.putImage(img);
@@ -2217,12 +2150,10 @@
                 let d = JSON.parse(raw);
                 d = migrateData(d);
                 if (d.customFonts && Array.isArray(d.customFonts)) {
-                    // 先清理之前加载的自定义字体，避免重复
                     state.fonts = state.fonts.filter(f => f.type !== 'upload');
                     state.customFonts = [];
                     state.loadedCustomFonts.clear();
                     for (const cf of d.customFonts) {
-                        // 兼容旧数据：如果包含 src，说明是旧格式，迁移到 IndexedDB
                         if (cf.src) {
                             const fontId = cf.id || ('font_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10));
                             const fontMeta = { id: fontId, name: cf.name, family: cf.family, type: 'upload' };
@@ -2238,7 +2169,6 @@
                                 state.fonts.push(fontMeta);
                             } catch (e) { console.warn('字体迁移失败', cf.name, e); }
                         } else if (cf.id) {
-                            // 新格式：从 IndexedDB 读取 src
                             try {
                                 const fontData = await AssetDB.getFont(cf.id);
                                 if (fontData && fontData.src) {
@@ -2253,7 +2183,6 @@
                             } catch (e) { console.warn('字体加载失败', cf.name, e); }
                         }
                     }
-                    // 重新构建下拉框以显示加载的字体
                     buildDropdown();
                 }
                 if (d.text !== undefined) els.editor.value = d.text;
@@ -2270,7 +2199,6 @@
                     });
                     updatePaperTexture();
                 }
-                // 修复：安全转换数值，避免字符串调用 .toFixed() 崩溃
                 if (d.fontSize !== undefined) {
                     const fs = parseInt(d.fontSize, 10);
                     if (!isNaN(fs)) {
@@ -2339,7 +2267,6 @@
                     }
                     renderImageGallery();
                 } else if (d.images && Array.isArray(d.images)) {
-                    // 兼容旧数据：自动迁移到 IndexedDB
                     state.images = d.images;
                     for (const img of state.images) {
                         if (img.id) {
@@ -2358,7 +2285,7 @@
         };
 
         const scheduleSave = () => {
-            if (state.isInitialLoad) return;
+            if (state.isInitialLoad || state.isSharedView) return;
             state.isSaving = true; showSaveStatus(true);
             clearTimeout(state.saveTimer);
             state.saveTimer = setTimeout(() => {
@@ -2398,7 +2325,6 @@
                 else if (e.key === 'ArrowDown' && !state.isDropdownOpen) { e.preventDefault(); toggleDropdown(true); }
             });
             els.fontDropdown.addEventListener('click', (e) => {
-                // Don't select if clicking delete button
                 if (e.target.closest('.font-delete-btn')) return;
                 const li = e.target.closest('li[data-index]');
                 if (li) selectFont(parseInt(li.dataset.index));
@@ -2412,7 +2338,6 @@
                     e.preventDefault(); 
                     const focused = items[state.focusedIndex]; 
                     if (focused) {
-                        // Check if focused element is a delete button
                         if (document.activeElement && document.activeElement.classList.contains('font-delete-btn')) {
                             const li = document.activeElement.closest('li[data-index]');
                             if (li) {
@@ -2429,7 +2354,14 @@
                 else if (e.key === 'End') { e.preventDefault(); state.focusedIndex = items.length - 1; updateFocus(); scrollToFocused(); items[items.length - 1].focus(); }
             });
 
-            els.editor.addEventListener('input', () => { updateCount(); scheduleSave(); });
+            els.editor.addEventListener('input', () => {
+                updateCount();
+                if (state.isSharedView) {
+                    state.isSharedView = false;
+                    showToast('已进入编辑模式，内容将保存在本地');
+                }
+                scheduleSave();
+            });
             els.editor.addEventListener('keydown', (e) => {
                 if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); exportImage(); }
                 if (e.ctrlKey && e.key === 'z' && !state.locked) { e.preventDefault(); undoClear(); }
@@ -2465,7 +2397,6 @@
                 else if (e.key === 'Escape' && state.colorPanelOpen) { toggleColorPanel(false); }
             });
 
-            // Drag & drop
             els.editorWrap.addEventListener('dragover', handleDragOver);
             els.editorWrap.addEventListener('dragleave', handleDragLeave);
             els.editorWrap.addEventListener('drop', handleDrop);
@@ -2473,12 +2404,10 @@
             els.stickyNote.addEventListener('dragleave', handleDragLeave);
             els.stickyNote.addEventListener('drop', handleDrop);
 
-            // Image preview
             els.imgPreviewOverlay.addEventListener('click', closeImagePreview);
             els.imgPreviewClose.addEventListener('click', closeImagePreview);
             els.imgPreviewClose.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') closeImagePreview(); });
 
-            // Share
             els.shareBtn.addEventListener('click', openSharePanel);
             els.shareClose.addEventListener('click', closeSharePanel);
             els.shareBackdrop.addEventListener('click', closeSharePanel);
@@ -2516,7 +2445,7 @@
             els.lineHeightSlider.addEventListener('input', (e) => { state.lineHeight = parseFloat(e.target.value); els.lineHeightValue.textContent = state.lineHeight.toFixed(2); updateEditorStyle(); scheduleSave(); });
             els.dateToggle.addEventListener('change', () => { state.showDate = els.dateToggle.checked; scheduleSave(); });
             els.exportBtn.addEventListener('click', exportImage);
-            window.addEventListener('beforeunload', () => { if (state.isSaving) saveToStorage(); });  // 同步调用，浏览器会等待
+            window.addEventListener('beforeunload', () => { if (state.isSaving) saveToStorage(); });
         };
 
         // ==================== INIT ====================
@@ -2525,22 +2454,32 @@
             buildColorPanel();
             setupSystemTheme();
 
-            // Try load from hash first (shared link), then localStorage
-            const loadedFromHash = await loadFromHash();
-            if (!loadedFromHash) {
-                await loadFromStorage();
+            // Always load local data first to preserve fonts and settings
+            await loadFromStorage();
+
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                const applied = await applySharedData(hash);
+                if (applied) {
+                    state.isSharedView = true;
+                }
             }
 
-            applyFont(state.selectedFontIndex);
-            setupEvents();
+            if (state.globalFontEnabled) applyGlobalFont();
+            if (state.darkMode) {
+                document.body.classList.add('dark-mode');
+                els.darkModeBtn.classList.add('active');
+                els.darkModeBtn.setAttribute('aria-pressed', 'true');
+            }
             updateEditorStyle();
             updatePaperTexture();
             updateNoteColor();
-            if (state.globalFontEnabled) applyGlobalFont();
-            if (state.darkMode) { document.body.classList.add('dark-mode'); els.darkModeBtn.classList.add('active'); els.darkModeBtn.setAttribute('aria-pressed', 'true'); }
+            applyFont(state.selectedFontIndex);
             els.globalFontCheckbox.checked = state.globalFontEnabled;
             els.globalFontSettingLabel.classList.toggle('active-label', state.globalFontEnabled);
             if (!state.lastSavedTime) updateLastSavedTime();
+
+            setupEvents();
             state.isInitialLoad = false;
         };
 
