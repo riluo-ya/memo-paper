@@ -1362,6 +1362,13 @@
             const compressedImages = await Promise.all(
                 state.images.map(img => compressImageForShare(img.dataUrl))
             );
+            // 打包自定义字体元数据（字体二进制文件从 IndexedDB 加载）
+            const shareFonts = state.customFonts.map(f => ({
+                id: f.id,
+                name: f.name,
+                family: f.family,
+                type: f.type
+            }));
             const data = {
                 v: CURRENT_VERSION,
                 t: els.editor.value,
@@ -1373,7 +1380,9 @@
                 g: state.globalFontEnabled,
                 m: state.darkMode,
                 a: state.textAlign,
-                i: compressedImages.map((d, idx) => ({ d, n: state.images[idx].name }))
+                i: compressedImages.map((d, idx) => ({ d, n: state.images[idx].name })),
+                cf: shareFonts,
+                sfi: state.selectedFontIndex
             };
             const json = JSON.stringify(data);
             const compressed = LZString.compressToEncodedURIComponent(json);
@@ -1398,7 +1407,7 @@
             }
         };
 
-        const loadFromHash = () => {
+        const loadFromHash = async () => {
             const hash = window.location.hash.slice(1);
             if (!hash) return false;
             const data = parseShareData(hash);
@@ -1465,6 +1474,43 @@
                         }));
                     renderImageGallery();
                 }
+
+                // 新增：加载分享的自定义字体
+                if (data.cf && Array.isArray(data.cf) && data.cf.length > 0) {
+                    // 清理之前的自定义字体，避免重复
+                    state.fonts = state.fonts.filter(f => f.type !== 'upload');
+                    state.customFonts = [];
+                    state.loadedCustomFonts.clear();
+
+                    for (const cf of data.cf) {
+                        if (!cf.id || !cf.name) continue;
+                        try {
+                            const fontData = await AssetDB.getFont(cf.id);
+                            if (fontData && fontData.src) {
+                                const buf = base64ToArrayBuffer(fontData.src);
+                                const ff = new FontFace(cf.name, buf);
+                                await ff.load();
+                                document.fonts.add(ff);
+                                state.loadedCustomFonts.set(cf.id, {
+                                    familyName: cf.name,
+                                    fontObj: ff,
+                                    src: fontData.src
+                                });
+                                const fontMeta = { id: cf.id, name: cf.name, family: cf.family, type: 'upload' };
+                                state.customFonts.push(fontMeta);
+                                state.fonts.push(fontMeta);
+                            }
+                        } catch (e) {
+                            console.warn('分享字体加载失败', cf.name, e);
+                        }
+                    }
+                }
+
+                // 设置选中的字体索引（在 buildDropdown 之前，确保下拉框正确渲染）
+                if (data.sfi !== undefined && data.sfi >= 0 && data.sfi < state.fonts.length) {
+                    state.selectedFontIndex = data.sfi;
+                }
+                buildDropdown();
 
                 updateEditorStyle();
                 updateNoteColor();
@@ -1875,12 +1921,10 @@
                     state.selectedFontIndex = 0;
                 }
 
+                // Apply new selected font before rebuild
+                applyFont(state.selectedFontIndex);
                 // Rebuild dropdown
                 buildDropdown();
-
-                // Apply new selected font
-                applyFont(state.selectedFontIndex);
-                els.fontLabel.textContent = state.fonts[state.selectedFontIndex]?.name || '系统默认';
 
                 if (state.globalFontEnabled) applyGlobalFont();
 
@@ -1938,9 +1982,8 @@
             }
             showFontProgress(false);
             if (ok) {
-                buildDropdown();
                 state.selectedFontIndex = state.fonts.length - 1;
-                els.fontLabel.textContent = state.fonts[state.selectedFontIndex].name;
+                buildDropdown();
                 applyFont(state.selectedFontIndex);
                 if (state.globalFontEnabled) applyGlobalFont();
                 scheduleSave();
@@ -2286,8 +2329,8 @@
                 if (typeof d.countMode === 'number') state.countMode = d.countMode;
                 if (typeof d.selectedFontIndex === 'number' && !isNaN(d.selectedFontIndex) && d.selectedFontIndex >= 0 && d.selectedFontIndex < state.fonts.length) {
                     state.selectedFontIndex = d.selectedFontIndex;
-                    els.fontLabel.textContent = state.fonts[d.selectedFontIndex]?.name || '系统默认';
                 }
+                buildDropdown();
                 if (d.imageIds && Array.isArray(d.imageIds)) {
                     try {
                         const allImages = await AssetDB.getAllImages();
@@ -2486,7 +2529,7 @@
             setupSystemTheme();
 
             // Try load from hash first (shared link), then localStorage
-            const loadedFromHash = loadFromHash();
+            const loadedFromHash = await loadFromHash();
             if (!loadedFromHash) {
                 await loadFromStorage();
             }
