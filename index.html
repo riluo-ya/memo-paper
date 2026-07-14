@@ -262,6 +262,10 @@
         .select-dropdown li .font-delete-btn:hover {
             opacity: 1; background: var(--danger-soft); color: var(--danger);
         }
+        .select-dropdown li .font-delete-btn.confirm-danger {
+            opacity: 1; background: var(--danger-soft); color: var(--danger);
+            animation: pulse-warn 0.8s infinite;
+        }
         .select-dropdown li .font-delete-btn svg {
             width: 13px; height: 13px; pointer-events: none;
         }
@@ -666,16 +670,13 @@
     <div class="fp-storage" id="fpStorage"></div>
 </div>
 
-<!-- Image preview overlay -->
 <div class="img-preview-overlay" id="imgPreviewOverlay" aria-hidden="true">
     <button class="img-close" id="imgPreviewClose" aria-label="关闭预览">×</button>
     <img id="imgPreviewImg" src="" alt="预览图片">
 </div>
 
-<!-- Share backdrop -->
 <div class="share-backdrop" id="shareBackdrop"></div>
 
-<!-- Share panel -->
 <div class="share-panel" id="sharePanel" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
     <button class="share-close" id="shareClose" aria-label="关闭分享面板">×</button>
     <h3 id="shareTitle">
@@ -694,7 +695,7 @@
 
 <div class="header">
     <h1>便签 · MEMO-PAPER</h1>
-    <p>v 3.2.3</p>
+    <p>v 3.2.5</p>
 </div>
 
 <div class="sticky-note" id="stickyNote" data-color="yellow">
@@ -792,7 +793,6 @@
             </div>
         </div>
 
-        <!-- Image gallery -->
         <div class="image-gallery" id="imageGallery" aria-label="便签图片"></div>
     </div>
 
@@ -849,7 +849,6 @@
 
         "use strict";
 
-        // ==================== IndexedDB Asset Storage (Images + Fonts) ====================
         const AssetDB = (() => {
             const DB_NAME = 'memo_assets_db';
             const DB_VERSION = 2;
@@ -871,7 +870,6 @@
                 };
             });
 
-            // Images
             const putImage = async (image) => {
                 const database = await openDB();
                 return new Promise((resolve, reject) => {
@@ -913,7 +911,6 @@
                 });
             };
 
-            // Fonts
             const putFont = async (font) => {
                 const database = await openDB();
                 return new Promise((resolve, reject) => {
@@ -998,7 +995,7 @@
             userManuallyToggledDark: false, undoStack: [], undoTimer: null,
             images: [],
             isSharedView: false,
-            sharedModified: false
+            fontDeleteConfirmTimers: {}
         };
 
         const getCurrentColors = () => state.darkMode ? colorsDark : colorsLight;
@@ -1199,7 +1196,6 @@
             els.savedTime.textContent = `已保存 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
         };
 
-        // ==================== IMAGE HANDLING ====================
         const renderImageGallery = () => {
             els.imageGallery.innerHTML = '';
             state.images.forEach((img, idx) => {
@@ -1335,7 +1331,6 @@
             }
         };
 
-        // ==================== SHARE LINK ====================
         const compressImageForShare = (dataUrl, maxWidth = 300, quality = 0.5) => {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -1410,7 +1405,6 @@
             const data = parseShareData(hash);
             if (!data) return false;
 
-            // Apply visual content without touching local font list
             if (data.t !== undefined) els.editor.value = data.t;
             if (data.c && getCurrentColors()[data.c]) {
                 state.currentColor = data.c;
@@ -1468,12 +1462,11 @@
             }
 
             if (data.sfi !== undefined && data.sfi >= 0 && data.sfi < state.fonts.length) {
-                applyFont(data.sfi);
                 state.selectedFontIndex = data.sfi;
-                els.fontLabel.textContent = state.fonts[data.sfi]?.name || '系统默认';
+                applyFont(data.sfi);
+                updateDropdownSelection(data.sfi);
             }
 
-            // ignore custom font binaries from share, keep local ones intact
             updateEditorStyle();
             updateCount();
             showToast('已加载分享的便签（预览模式，编辑后才会保存）');
@@ -1513,7 +1506,6 @@
             }
         };
 
-        // ==================== COLOR PANEL ====================
         const buildColorPanel = () => {
             els.colorPanel.innerHTML = '';
             Object.keys(colorsLight).forEach((color, idx) => {
@@ -1609,7 +1601,6 @@
             els.stickyNote.style.background = getCurrentColors()[state.currentColor];
         };
 
-        // ==================== DROPDOWN ====================
         const buildDropdown = () => {
             ensureValidFonts();
             els.fontDropdown.innerHTML = '';
@@ -1696,10 +1687,12 @@
                         delBtn.className = 'font-delete-btn';
                         delBtn.setAttribute('aria-label', '删除字体');
                         delBtn.setAttribute('title', '删除字体');
+                        delBtn.dataset.fontId = font.id;
+                        delBtn.dataset.originalIndex = font.originalIndex;
                         delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
                         delBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
-                            deleteCustomFont(font.id, font.originalIndex);
+                            handleFontDeleteClick(delBtn);
                         });
                         li.appendChild(delBtn);
                     }
@@ -1708,6 +1701,83 @@
                 });
             });
             els.fontLabel.textContent = state.fonts[state.selectedFontIndex]?.name || '系统默认';
+        };
+
+        const updateDropdownSelection = (index) => {
+            const font = state.fonts[index];
+            els.fontLabel.textContent = font?.name || '系统默认';
+            els.fontDropdown.querySelectorAll('li').forEach(li => {
+                // 先全部清除，再设置当前选中项，避免残留
+                li.classList.remove('selected');
+                const isSelected = parseInt(li.dataset.index) === index;
+                if (isSelected) {
+                    li.classList.add('selected');
+                    li.setAttribute('aria-selected', 'true');
+                } else {
+                    li.setAttribute('aria-selected', 'false');
+                }
+            });
+        };
+
+        const handleFontDeleteClick = async (btn) => {
+            const fontId = btn.dataset.fontId;
+            const originalIndex = parseInt(btn.dataset.originalIndex);
+            if (!fontId) return;
+
+            if (btn.classList.contains('confirm-danger')) {
+                clearFontDeleteTimer(fontId);
+                btn.classList.remove('confirm-danger');
+                await performFontDelete(fontId, originalIndex);
+            } else {
+                clearFontDeleteTimer(fontId);
+                btn.classList.add('confirm-danger');
+                showToast('再点一次删除字体');
+                state.fontDeleteConfirmTimers[fontId] = setTimeout(() => {
+                    btn.classList.remove('confirm-danger');
+                    delete state.fontDeleteConfirmTimers[fontId];
+                }, 3000);
+            }
+        };
+
+        const clearFontDeleteTimer = (fontId) => {
+            if (state.fontDeleteConfirmTimers[fontId]) {
+                clearTimeout(state.fontDeleteConfirmTimers[fontId]);
+                delete state.fontDeleteConfirmTimers[fontId];
+            }
+        };
+
+        const performFontDelete = async (fontId, originalIndex) => {
+            const font = state.fonts[originalIndex];
+            if (!font || font.type !== 'upload' || !font.id) return;
+
+            try {
+                await AssetDB.removeFont(fontId);
+
+                const loaded = state.loadedCustomFonts.get(fontId);
+                if (loaded && loaded.fontObj) {
+                    try { document.fonts.delete(loaded.fontObj); } catch(e) {}
+                }
+                state.loadedCustomFonts.delete(fontId);
+
+                state.fonts = state.fonts.filter((f, idx) => idx !== originalIndex);
+                state.customFonts = state.customFonts.filter(f => f.id !== fontId);
+
+                if (state.selectedFontIndex >= state.fonts.length) {
+                    state.selectedFontIndex = 0;
+                }
+                if (state.selectedFontIndex === originalIndex) {
+                    state.selectedFontIndex = 0;
+                }
+
+                applyFont(state.selectedFontIndex);
+                buildDropdown();
+                if (state.globalFontEnabled) applyGlobalFont();
+                scheduleSave();
+                showToast(`字体「${font.name}」已删除`);
+            } catch (e) {
+                console.warn('删除字体失败', e);
+                showToast('删除字体失败');
+            }
         };
 
         const filterFonts = (query) => {
@@ -1746,6 +1816,8 @@
                     filterFonts('');
                     state.focusedIndex = 0; updateFocus(); scrollToFocused();
                     updateDropdownGlobalToggle();
+                    // 每次打开菜单时重新同步选中状态，修复“系统默认”残留高亮的问题
+                    updateDropdownSelection(state.selectedFontIndex);
                 });
             } else {
                 els.fontDropdown.classList.remove('show');
@@ -1759,12 +1831,7 @@
             const font = state.fonts[index];
             if (font.type === 'upload' && font.id && !state.loadedCustomFonts.has(font.id)) { showToast('字体尚未就绪'); return; }
             state.selectedFontIndex = index;
-            els.fontLabel.textContent = font?.name || '系统默认';
-            els.fontDropdown.querySelectorAll('li').forEach(li => {
-                const selected = parseInt(li.dataset.index) === index;
-                li.classList.toggle('selected', selected);
-                li.setAttribute('aria-selected', selected);
-            });
+            updateDropdownSelection(index);
             applyFont(index);
             if (state.globalFontEnabled) applyGlobalFont();
             toggleDropdown(false);
@@ -1833,42 +1900,6 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-        };
-
-        const deleteCustomFont = async (fontId, originalIndex) => {
-            const font = state.fonts[originalIndex];
-            if (!font || font.type !== 'upload' || !font.id) return;
-
-            if (!confirm(`确定要删除字体「${font.name}」吗？`)) return;
-
-            try {
-                await AssetDB.removeFont(fontId);
-
-                const loaded = state.loadedCustomFonts.get(fontId);
-                if (loaded && loaded.fontObj) {
-                    try { document.fonts.delete(loaded.fontObj); } catch(e) {}
-                }
-                state.loadedCustomFonts.delete(fontId);
-
-                state.fonts = state.fonts.filter((f, idx) => idx !== originalIndex);
-                state.customFonts = state.customFonts.filter(f => f.id !== fontId);
-
-                if (state.selectedFontIndex >= state.fonts.length) {
-                    state.selectedFontIndex = 0;
-                }
-                if (state.selectedFontIndex === originalIndex) {
-                    state.selectedFontIndex = 0;
-                }
-
-                applyFont(state.selectedFontIndex);
-                buildDropdown();
-                if (state.globalFontEnabled) applyGlobalFont();
-                scheduleSave();
-                showToast(`字体「${font.name}」已删除`);
-            } catch (e) {
-                console.warn('删除字体失败', e);
-                showToast('删除字体失败');
-            }
         };
 
         const handleFontUpload = async (files) => {
@@ -1945,7 +1976,6 @@
         };
         const updatePaperTexture = () => { els.paperTexture.className = `paper-texture ${state.paperMode}`; };
 
-        // ==================== UNDO / CLEAR ====================
         const pushUndo = () => {
             state.undoStack.push(els.editor.value);
             if (state.undoStack.length > 10) state.undoStack.shift();
@@ -1977,7 +2007,6 @@
             }
         };
 
-        // ==================== TEXT WRAPPING ====================
         const wrapText = (ctx, text, maxW) => {
             const lines = [];
             const isCJK = (char) => /[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/.test(char);
@@ -2023,7 +2052,6 @@
             return lines;
         };
 
-        // ==================== EXPORT IMAGE ====================
         const exportImage = async () => {
             const text = els.editor.value;
             if (!text.trim() && state.images.length === 0) { showToast('请输入内容或添加图片'); return; }
@@ -2112,7 +2140,6 @@
             showToast('图片已导出'); els.exportBtn.disabled = false;
         };
 
-        // ==================== STORAGE ====================
         const saveToStorage = async () => {
             try {
                 for (const img of state.images) {
@@ -2317,7 +2344,6 @@
             }
         };
 
-        // ==================== EVENTS ====================
         const setupEvents = () => {
             els.fontTrigger.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
             els.fontTrigger.addEventListener('keydown', (e) => {
@@ -2339,11 +2365,7 @@
                     const focused = items[state.focusedIndex]; 
                     if (focused) {
                         if (document.activeElement && document.activeElement.classList.contains('font-delete-btn')) {
-                            const li = document.activeElement.closest('li[data-index]');
-                            if (li) {
-                                const font = state.fonts[parseInt(li.dataset.index)];
-                                if (font && font.id) deleteCustomFont(font.id, parseInt(li.dataset.index));
-                            }
+                            handleFontDeleteClick(document.activeElement);
                             return;
                         }
                         selectFont(parseInt(focused.dataset.index)); 
@@ -2448,13 +2470,11 @@
             window.addEventListener('beforeunload', () => { if (state.isSaving) saveToStorage(); });
         };
 
-        // ==================== INIT ====================
         const init = async () => {
             buildDropdown();
             buildColorPanel();
             setupSystemTheme();
 
-            // Always load local data first to preserve fonts and settings
             await loadFromStorage();
 
             const hash = window.location.hash.slice(1);
