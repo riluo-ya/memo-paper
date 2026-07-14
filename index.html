@@ -694,7 +694,7 @@
 
 <div class="header">
     <h1>便签 · MEMO-PAPER</h1>
-    <p>v 3.2.1</p>
+    <p>v 3.2.2</p>
 </div>
 <!-- storage hint removed -->
 
@@ -1475,15 +1475,12 @@
                     renderImageGallery();
                 }
 
-                // 新增：加载分享的自定义字体
+                // 新增：加载分享的自定义字体（合并模式：保留本地字体 + 加载分享字体）
                 if (data.cf && Array.isArray(data.cf) && data.cf.length > 0) {
-                    // 清理之前的自定义字体，避免重复
-                    state.fonts = state.fonts.filter(f => f.type !== 'upload');
-                    state.customFonts = [];
-                    state.loadedCustomFonts.clear();
-
                     for (const cf of data.cf) {
                         if (!cf.id || !cf.name) continue;
+                        // 如果本地已有该字体，跳过
+                        if (state.customFonts.some(f => f.id === cf.id)) continue;
                         try {
                             const fontData = await AssetDB.getFont(cf.id);
                             if (fontData && fontData.src) {
